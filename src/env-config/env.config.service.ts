@@ -19,6 +19,10 @@ export class EnvConfigService {
       DATABASE_URL: this.configService.get<string>('DATABASE_URL'),
       BCRYPT_SALT_ROUND: this.configService.get<string>('BCRYPT_SALT_ROUND'),
       JWT_SECRET: this.configService.get<string>('JWT_SECRET'),
+      GOOGLE_CLIENT_SECRET: this.configService.get<string>(
+        'GOOGLE_CLIENT_SECRET',
+      ),
+      GOOGLE_CLIENT_ID: this.configService.get<string>('GOOGLE_CLIENT_ID'),
     };
   }
 
@@ -45,5 +49,11 @@ export class EnvConfigService {
   }
   get nodeEnv(): string {
     return this.envConfig.NODE_ENV;
+  }
+  get googleClientId(): string {
+    return this.envConfig.GOOGLE_CLIENT_ID;
+  }
+  get googleClientSecret(): string {
+    return this.envConfig.GOOGLE_CLIENT_SECRET;
   }
 }

@@ -6,4 +6,6 @@ export const EnvConfigSchema = z.object({
   DATABASE_URL: z.string(),
   BCRYPT_SALT_ROUND: z.string().transform(Number),
   JWT_SECRET: z.string(),
+  GOOGLE_CLIENT_ID: z.string(),
+  GOOGLE_CLIENT_SECRET: z.string(),
 });

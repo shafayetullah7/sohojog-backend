@@ -6,8 +6,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
-// import moment from 'moment';
+
 import { UserService } from 'src/modules/user-module/user/user.service';
+import { JwtUser } from '../interfaces/jwt.user.interface';
 
 @Injectable()
 export class TokenValidationGuard implements CanActivate {
@@ -28,12 +29,14 @@ export class TokenValidationGuard implements CanActivate {
       throw new UnauthorizedException('Unauthorized access');
     }
 
-    console.log(
-      '----------',
-      jwtUser.userId,
-      jwtUser.iat,
-      user.passwordChangedAt,
-    );
+    // console.log(user.)
+
+    // console.log(
+    //   '----------',
+    //   jwtUser.userId,
+    //   jwtUser.iat,
+    //   user.passwordChangedAt,
+    // );
 
     // const tokenCreatedAt = moment.unix(jwtUser.iat);
     // const passwordChangedAt = moment(user.passwordChangedAt);
