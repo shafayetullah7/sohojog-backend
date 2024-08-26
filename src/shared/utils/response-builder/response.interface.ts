@@ -35,6 +35,7 @@ export type Taccess = {
   otpToken?: string;
   sessionExpired?: boolean;
   verificationRequired?: boolean;
+  refreshToken?: string;
 };
 export type ResponseFormat<T> = {
   success: boolean;

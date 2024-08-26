@@ -40,6 +40,14 @@ export class ResponseInterceptor<T> implements NestInterceptor {
           });
 
         if (data instanceof ResponseBuilder) {
+          if (data.refreshToken) {
+            res.cookie('sohojogRefreshToken', data.refreshToken, {
+              maxAge: 1000 * 60 * 60 * 24 * 10, // 10 days
+              httpOnly: true,
+              secure: true,
+              sameSite: 'none',
+            });
+          }
           return data
             .setRequestDetails(req.url, req.method)
             .setMeta({

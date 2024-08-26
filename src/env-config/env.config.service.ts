@@ -19,10 +19,16 @@ export class EnvConfigService {
       DATABASE_URL: this.configService.get<string>('DATABASE_URL'),
       BCRYPT_SALT_ROUND: this.configService.get<string>('BCRYPT_SALT_ROUND'),
       JWT_SECRET: this.configService.get<string>('JWT_SECRET'),
+      REFRESH_TOKEN_SECRET: this.configService.get<string>(
+        'REFRESH_TOKEN_SECRET',
+      ),
       GOOGLE_CLIENT_SECRET: this.configService.get<string>(
         'GOOGLE_CLIENT_SECRET',
       ),
       GOOGLE_CLIENT_ID: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      GOOGLE_CALLBACK_URL: this.configService.get<string>(
+        'GOOGLE_CALLBACK_URL',
+      ),
     };
   }
 
@@ -47,6 +53,9 @@ export class EnvConfigService {
   get jwtSecret(): string {
     return this.envConfig.JWT_SECRET;
   }
+  get refreshTokenSecret(): string {
+    return this.envConfig.REFRESH_TOKEN_SECRET;
+  }
   get nodeEnv(): string {
     return this.envConfig.NODE_ENV;
   }
@@ -55,5 +64,8 @@ export class EnvConfigService {
   }
   get googleClientSecret(): string {
     return this.envConfig.GOOGLE_CLIENT_SECRET;
+  }
+  get googleCallbackUrl(): string {
+    return this.envConfig.GOOGLE_CALLBACK_URL;
   }
 }

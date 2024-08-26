@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { PasswordManagerModule } from 'src/shared/utils/password-manager/password-manager.module';
@@ -8,6 +7,9 @@ import { JwtStrategy } from './auth-strategies/jwt.strategy';
 import { EnvConfigModule } from 'src/env-config/env.config.module';
 import { ResponseBuilderModule } from 'src/shared/utils/response-builder/response.builder.module';
 import { UserService } from '../user/user.service';
+import { GoogleStrategy } from './auth-strategies/google.strategy';
+import { LocalAuthService } from './services/local/local.auth.service';
+import { GoogleAuthService } from './services/google/google.auth.service';
 
 @Module({
   imports: [
@@ -17,7 +19,13 @@ import { UserService } from '../user/user.service';
     EnvConfigModule,
     ResponseBuilderModule,
   ],
-  providers: [AuthService, JwtStrategy, UserService],
+  providers: [
+    LocalAuthService,
+    JwtStrategy,
+    UserService,
+    GoogleStrategy,
+    GoogleAuthService,
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}

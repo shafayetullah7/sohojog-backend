@@ -5,7 +5,7 @@ import { CreateUserDto, createUserSchema } from './dto/create.user.dto';
 import { JwtAuthGaurd } from 'src/shared/guards/jwt.auth.gaurd';
 import { ZodValidation } from 'src/shared/custom-decorator/zod.validation.decorator';
 import { Roles } from 'src/shared/custom-decorator/roles.decorator';
-import { Role } from 'src/shared/enums/user.roles';
+import { Role } from 'src/constants/enums/user.roles';
 import { Request } from 'express';
 import { RolesGuard } from 'src/shared/guards/roles.guard';
 import { TokenValidationGuard } from 'src/shared/guards/token.validation.guard';

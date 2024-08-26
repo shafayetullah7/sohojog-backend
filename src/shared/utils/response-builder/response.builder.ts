@@ -41,6 +41,9 @@ export class ResponseBuilder<T> {
   get getMeta() {
     return this.meta;
   }
+  get refreshToken() {
+    return this.access.refreshToken;
+  }
 
   setSuccess(success: boolean): this {
     this.success = success;
@@ -77,6 +80,11 @@ export class ResponseBuilder<T> {
     return this;
   }
 
+  setRefreshToken(token: string): this {
+    this.access.refreshToken = token;
+    return this;
+  }
+
   setOtpToken(token: string): this {
     this.access.otpToken = token;
     return this;
@@ -99,6 +107,7 @@ export class ResponseBuilder<T> {
   }
 
   build(): ResponseFormat<T> {
+    delete this.access.refreshToken;
     return {
       success: this.success,
       message: this.message,

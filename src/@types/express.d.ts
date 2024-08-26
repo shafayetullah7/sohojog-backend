@@ -1,7 +1,8 @@
 // src/@types/express.d.ts
 
 import * as express from 'express';
-import { JwtUser } from 'src/shared/interfaces/jwt.user.interface';
+import { JwtPayload } from 'src/constants/interfaces/jwt.payload';
+import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
 
 // declare global {
 //   namespace Express {
@@ -15,5 +16,6 @@ import { JwtUser } from 'src/shared/interfaces/jwt.user.interface';
 declare module 'express' {
   export interface Request {
     user?: JwtUser;
+    startTime?: number;
   }
 }

@@ -8,7 +8,7 @@ import {
 import { Request } from 'express';
 
 import { UserService } from 'src/modules/user-module/user/user.service';
-import { JwtUser } from '../interfaces/jwt.user.interface';
+import * as dayjs from 'dayjs'
 
 @Injectable()
 export class TokenValidationGuard implements CanActivate {
@@ -19,9 +19,10 @@ export class TokenValidationGuard implements CanActivate {
 
     const { user: jwtUser } = request;
 
-    if (!jwtUser) {
+    if (!jwtUser || !jwtUser.iat) {
       throw new UnauthorizedException('Unauthorized access');
     }
+    console.log('jwtUser', jwtUser);
 
     const user = await this.userService.findUserById(jwtUser.userId);
 
@@ -29,28 +30,25 @@ export class TokenValidationGuard implements CanActivate {
       throw new UnauthorizedException('Unauthorized access');
     }
 
-    // console.log(user.)
+    if (!jwtUser.iat) {
+      throw new UnauthorizedException('Unauthorizded');
+    }
 
-    // console.log(
-    //   '----------',
-    //   jwtUser.userId,
-    //   jwtUser.iat,
-    //   user.passwordChangedAt,
-    // );
+    // console.log(dayjs.unix(1724428387));
 
-    // const tokenCreatedAt = moment.unix(jwtUser.iat);
-    // const passwordChangedAt = moment(user.passwordChangedAt);
-    const tokenCreatedAt = new Date(jwtUser.iat * 1000);
-    const passwordChangedAt = new Date(user.passwordChangedAt);
+    if (user.hasPassword && user.passwordChangedAt) {
+      const tokenCreatedAt = dayjs.unix(jwtUser.iat);
+      const passwordChangedAt = dayjs(user.passwordChangedAt);
 
-    console.log(tokenCreatedAt, passwordChangedAt);
+      console.log('Token Created At:', tokenCreatedAt.format());
+      console.log('Password Changed At:', passwordChangedAt.format());
+      if (tokenCreatedAt.isBefore(passwordChangedAt)) {
+        throw new UnauthorizedException('Token is no longer valid');
+      }
+    }
 
-    // if (tokenCreatedAt.isBefore(passwordChangedAt)) {
-    //   return false;
-    // } else return true;
+    return true;
 
-    if (tokenCreatedAt < passwordChangedAt) {
-      throw new UnauthorizedException('Token is no longer valid');
-    } else return true;
+    // Compare dates using Day.js
   }
 }

@@ -16,12 +16,20 @@ datasource db {
 model User {
   id                String   @id @default(uuid())
   email             String   @unique
-  password          String
+  password          String?
+  hasPassword       Boolean  @default(true)
   name              String
   verified          Boolean  @default(false)
   passwordChangedAt DateTime @default(now())
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  googleId             String?
+  profilePicture String?
+  googleEmailVerified  Boolean?
+  googleProfileUrl     String?
+
+  @@unique([googleId, id])
 }
 
 model Otp {

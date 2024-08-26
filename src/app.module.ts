@@ -8,7 +8,7 @@ import { AuthModule } from './modules/user-module/auth/auth.module';
 import { PasswordManagerModule } from './shared/utils/password-manager/password-manager.module';
 import { JwtUtilsModule } from './shared/utils/jwt-utils/jwt-utils.module';
 import { InterceptorsModule } from './shared/interceptors/interceptors.module';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 // import { ResponseInterceptor } from './shared/interceptors/response.formatter.interceptor';
 // import { ZodValidationPipe } from './shared/custom-pipes/zod.validation.pipe';
 import { EmailModule } from './shared/utils/email/email.module';
@@ -18,6 +18,7 @@ import { GlobalExceptionFilter } from './shared/exception/global.exception.filte
 import { ResponseInterceptor } from './shared/interceptors/response.formatter.interceptor';
 import { HttpExceptionFilter } from './shared/exception/http.exception.filter';
 import { RequestStartTimeMiddleware } from './global/middleware/startTimeStampMiddleware';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 // import { ZodValidationPipe } from './shared/validation/zod.validation.pipe';
 
 @Module({
@@ -30,6 +31,10 @@ import { RequestStartTimeMiddleware } from './global/middleware/startTimeStampMi
     JwtUtilsModule,
     InterceptorsModule,
     EmailModule,
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 10,
+    }]),
   ],
   controllers: [AppController],
   providers: [
@@ -37,6 +42,10 @@ import { RequestStartTimeMiddleware } from './global/middleware/startTimeStampMi
     //   provide: APP_PIPE,
     //   useClass: ZodValidationPipe,
     // },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,

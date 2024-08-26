@@ -9,13 +9,15 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { PasswordManagerService } from 'src/shared/utils/password-manager/password-manager.service';
 import { JwtUtilsService } from 'src/shared/utils/jwt-utils/jwt-utils.service';
 import { ResponseBuilder } from 'src/shared/utils/response-builder/response.builder';
-import { UserService } from '../user/user.service';
-import { CreateUserBodyDto } from './dto/create.user.dto';
-import { LoginUserBodyDto } from './dto/login.user.dto';
-import { Role } from 'src/shared/enums/user.roles';
+import { UserService } from '../../../user/user.service';
+import { CreateUserBodyDto } from '../../dto/create.user.dto';
+import { LoginUserBodyDto } from '../../dto/login.user.dto';
+import { Role } from 'src/constants/enums/user.roles';
+import { JwtPayload } from 'src/constants/interfaces/jwt.payload';
+import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter';
 
 @Injectable()
-export class AuthService {
+export class LocalAuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwordManager: PasswordManagerService,
@@ -30,7 +32,7 @@ export class AuthService {
     });
     console.log('existingUser', existingUser);
     if (existingUser) {
-      console.log('************');
+      // console.log('************');
       throw new ConflictException('User already exists with this email');
     }
     data.password = await this.passwordManager.hashPassword(data.password);
@@ -41,17 +43,22 @@ export class AuthService {
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...restUser } = user;
-    const token = this.jwtUtilsService.generateToken({
+    const safeUser = getSafeUserInfo(user);
+    const tokenPayload: JwtPayload = {
       userId: restUser.id,
       email: restUser.email,
       verified: restUser.verified,
       roles: [Role.User],
-    });
+    };
+    const token = this.jwtUtilsService.generateToken(tokenPayload);
+    const refreshToken =
+      this.jwtUtilsService.generateRefreshToken(tokenPayload);
     if (user) {
       return this.response
         .setVerificationRequired(true)
-        .setData({ user: restUser })
+        .setData({ user: safeUser })
         .setToken(token)
+        .setRefreshToken(refreshToken)
         .setMessage('User created. Please verify your email to continue.');
     } else {
       throw new InternalServerErrorException('Failed to sign up.');
@@ -65,6 +72,10 @@ export class AuthService {
     }
 
     console.log('finding user', user);
+
+    if (!user.hasPassword || !user.password) {
+      throw new UnauthorizedException('Invalid password');
+    }
 
     const passMatch = await this.passwordManager.matchPassword(
       password,
@@ -87,29 +98,40 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('User not found.');
     }
+    if (!user.hasPassword || !user.password) {
+      throw new UnauthorizedException('Invalid password');
+    }
     const passMatch = await this.passwordManager.matchPassword(
       password,
       user.password,
     );
 
-    console.log('****************');
+    // console.log('****************');
 
     if (!passMatch) {
       throw new UnauthorizedException('Invalid credential.');
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars, prettier/prettier
     const { password: userPassword, ...rest } = user;
-    const token = this.jwtUtilsService.generateToken({
+
+    const safeUser = getSafeUserInfo(user);
+    const tokenPayload: JwtPayload = {
       userId: rest.id,
       email: rest.email,
       verified: rest.verified,
       roles: [Role.User],
-    });
+    };
+    const token = this.jwtUtilsService.generateToken(tokenPayload);
+    const refreshToken =
+      this.jwtUtilsService.generateRefreshToken(tokenPayload);
 
-    return this.response
-      .setData({ user: rest })
-      .setToken(token)
-      .setMessage('Logged in.');
+    return (
+      this.response
+        .setData({ user: safeUser })
+        .setToken(token)
+        .setRefreshToken(refreshToken)
+        .setMessage('Logged in.')
+    );
   }
 
   // async sendVerificationMail(data: { id: string; email: string }) {
