@@ -19,7 +19,7 @@ import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter'
 @Injectable()
 export class LocalAuthService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prismaService: PrismaService,
     private readonly passwordManager: PasswordManagerService,
     private readonly jwtUtilsService: JwtUtilsService,
     private readonly response: ResponseBuilder<any>,
@@ -27,7 +27,7 @@ export class LocalAuthService {
   ) {}
 
   async signUp(data: CreateUserBodyDto) {
-    const existingUser = await this.prisma.user.findFirst({
+    const existingUser = await this.prismaService.user.findFirst({
       where: { email: data.email },
     });
     console.log('existingUser', existingUser);
@@ -37,17 +37,16 @@ export class LocalAuthService {
     }
     data.password = await this.passwordManager.hashPassword(data.password);
 
-    const user = await this.prisma.user.create({ data });
+    const user = await this.prismaService.user.create({ data });
     if (!user) {
       throw new InternalServerErrorException('Failed to sign up');
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...restUser } = user;
+
     const safeUser = getSafeUserInfo(user);
     const tokenPayload: JwtPayload = {
-      userId: restUser.id,
-      email: restUser.email,
-      verified: restUser.verified,
+      userId: safeUser.id,
+      email: safeUser.email,
+      verified: safeUser.verified,
       roles: [Role.User],
     };
     const token = this.jwtUtilsService.generateToken(tokenPayload);
@@ -94,7 +93,7 @@ export class LocalAuthService {
 
   async login(data: LoginUserBodyDto) {
     const { email, password } = data;
-    const user = await this.prisma.user.findFirst({ where: { email } });
+    const user = await this.prismaService.user.findFirst({ where: { email } });
     if (!user) {
       throw new NotFoundException('User not found.');
     }
@@ -111,30 +110,53 @@ export class LocalAuthService {
     if (!passMatch) {
       throw new UnauthorizedException('Invalid credential.');
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, prettier/prettier
-    const { password: userPassword, ...rest } = user;
 
     const safeUser = getSafeUserInfo(user);
     const tokenPayload: JwtPayload = {
-      userId: rest.id,
-      email: rest.email,
-      verified: rest.verified,
+      userId: safeUser.id,
+      email: safeUser.email,
+      verified: safeUser.verified,
       roles: [Role.User],
     };
     const token = this.jwtUtilsService.generateToken(tokenPayload);
     const refreshToken =
       this.jwtUtilsService.generateRefreshToken(tokenPayload);
 
-    return (
-      this.response
-        .setData({ user: safeUser })
-        .setToken(token)
-        .setRefreshToken(refreshToken)
-        .setMessage('Logged in.')
-    );
+    return this.response
+      .setData({ user: safeUser })
+      .setToken(token)
+      .setRefreshToken(refreshToken)
+      .setMessage('Logged in.');
   }
 
-  // async sendVerificationMail(data: { id: string; email: string }) {
+  async refreshToken(userId: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId },
+    });
 
-  // }
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    const payload: JwtPayload = {
+      userId: user.id,
+      email: user.email,
+      verified: user.verified,
+      roles: [Role.User],
+    };
+
+    const accessToken = this.jwtUtilsService.generateToken(payload);
+
+    const safeUser = getSafeUserInfo(user);
+
+    // return { accessToken, refreshToken: newRefreshToken };
+    return this.response
+      .setToken(accessToken)
+      .setSessionExpierity(true)
+      .setData(safeUser)
+      .setMessage('Token refreshed.');
+  }
 }
+// async sendVerificationMail(data: { id: string; email: string }) {
+
+// }

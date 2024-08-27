@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpStatus,
   Post,
   Redirect,
   Req,
@@ -19,6 +20,7 @@ import { Request, Response } from 'express';
 import { GoogleAuthService } from './services/google/google.auth.service';
 import { GenericUser } from 'src/constants/interfaces/req-user/generic.user';
 import { JwtUtilsService } from 'src/shared/utils/jwt-utils/jwt-utils.service';
+import { JwtRefreshGuard } from 'src/shared/guards/jwt.refresh.gaurd';
 
 @Controller('auth')
 export class AuthController {
@@ -75,6 +77,19 @@ export class AuthController {
     // });
     // res.redirect(`http://www.abc12345321.com?token=${token}`);
     res.json({});
+  }
+
+  @UseGuards(JwtRefreshGuard)
+  @Post('refresh-token')
+  @HttpCode(HttpStatus.OK)
+  async refreshToken(@Req() req: Request) {
+    const user = req.user;
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+    const result = await this.localAuthService.refreshToken(user.userId);
+
+    return result;
   }
 
   @Get()

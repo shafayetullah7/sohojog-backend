@@ -10,6 +10,7 @@ import { UserService } from '../user/user.service';
 import { GoogleStrategy } from './auth-strategies/google.strategy';
 import { LocalAuthService } from './services/local/local.auth.service';
 import { GoogleAuthService } from './services/google/google.auth.service';
+import { JwtRefreshStrategy } from './auth-strategies/jwt.refresh.strategy';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { GoogleAuthService } from './services/google/google.auth.service';
     UserService,
     GoogleStrategy,
     GoogleAuthService,
+    JwtRefreshStrategy,
   ],
   controllers: [AuthController],
 })
