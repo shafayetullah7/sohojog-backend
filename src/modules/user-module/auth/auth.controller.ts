@@ -19,7 +19,7 @@ import { LocalAuthService } from './services/local/local.auth.service';
 import { Request, Response } from 'express';
 import { GoogleAuthService } from './services/google/google.auth.service';
 import { GenericUser } from 'src/constants/interfaces/req-user/generic.user';
-import { JwtUtilsService } from 'src/shared/utils/jwt-utils/jwt-utils.service';
+import { JwtUtilsService } from 'src/modules/common/jwt/jwt-utils.service';
 import { JwtRefreshGuard } from 'src/shared/guards/jwt.refresh.gaurd';
 
 @Controller('auth')
@@ -46,6 +46,8 @@ export class AuthController {
 
     return result;
   }
+
+  
 
   @Get('google/login')
   @UseGuards(GoogleAuthGuard)

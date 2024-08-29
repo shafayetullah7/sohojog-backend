@@ -5,13 +5,12 @@ import { EnvConfigModule } from './env-config/env.config.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './modules/user-module/user/user.module';
 import { AuthModule } from './modules/user-module/auth/auth.module';
-import { PasswordManagerModule } from './shared/utils/password-manager/password-manager.module';
-import { JwtUtilsModule } from './shared/utils/jwt-utils/jwt-utils.module';
-import { InterceptorsModule } from './shared/interceptors/interceptors.module';
+import { PasswordManagerModule } from './modules/common/password-manager/password-manager.module';
+import { JwtUtilsModule } from './modules/common/jwt/jwt-utils.module';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 // import { ResponseInterceptor } from './shared/interceptors/response.formatter.interceptor';
 // import { ZodValidationPipe } from './shared/custom-pipes/zod.validation.pipe';
-import { EmailModule } from './shared/utils/email/email.module';
+import { EmailModule } from './modules/common/email/email.module';
 import { ZodExceptionFilter } from './shared/exception/zod.exception.filter';
 import { PrismaExceptionFilter } from './shared/exception/prisma.exception.filter';
 import { GlobalExceptionFilter } from './shared/exception/global.exception.filter';
@@ -20,6 +19,7 @@ import { HttpExceptionFilter } from './shared/exception/http.exception.filter';
 import { RequestStartTimeMiddleware } from './global/middleware/startTimeStampMiddleware';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 // import { ZodValidationPipe } from './shared/validation/zod.validation.pipe';
+import { OtpModule } from './modules/common/otp/otp.module';
 
 @Module({
   imports: [
@@ -29,12 +29,12 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     AuthModule,
     PasswordManagerModule,
     JwtUtilsModule,
-    InterceptorsModule,
     EmailModule,
     ThrottlerModule.forRoot([{
       ttl: 60000,
       limit: 10,
     }]),
+    OtpModule,
   ],
   controllers: [AppController],
   providers: [

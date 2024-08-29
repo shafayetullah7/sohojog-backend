@@ -13,6 +13,12 @@ export class JwtUtilsService {
     return this.jwtService.sign(payload);
   }
 
+  async validateAccessToken(token: string): Promise<any> {
+    return await this.jwtService.verify(token, {
+      secret: this.envConfig.jwtSecret,
+    });
+  }
+
   generateRefreshToken(payload: JwtPayload) {
     return this.jwtService.sign(payload, {
       secret: this.envConfig.refreshTokenSecret,
@@ -20,15 +26,22 @@ export class JwtUtilsService {
     });
   }
 
-  async validateAccessToken(token: string): Promise<any> {
-    return await this.jwtService.verify(token, {
-      secret: this.envConfig.jwtSecret,
-    });
-  }
-
   async validateRefreshToken(token: string): Promise<any> {
     return await this.jwtService.verify(token, {
       secret: this.envConfig.refreshTokenSecret,
+    });
+  }
+
+  generateOtpToken(payload: JwtPayload) {
+    return this.jwtService.sign(payload, {
+      secret: this.envConfig.otpTokenSecret,
+      expiresIn: '3m',
+    });
+  }
+
+  async validateOtpToken(token: string): Promise<any> {
+    return await this.jwtService.verify(token, {
+      secret: this.envConfig.otpTokenSecret,
     });
   }
 }

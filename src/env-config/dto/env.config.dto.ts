@@ -10,4 +10,9 @@ export const EnvConfigSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string(),
   GOOGLE_CALLBACK_URL: z.string(),
   REFRESH_TOKEN_SECRET: z.string(),
+  OTP_TOKEN_SECRET: z.string(),
+  EMAIL_HOST: z.string().default('smtp.gmail.com'),
+  EMAIL_PORT: z.string().transform(Number).default('587'),
+  EMAIL_USER: z.string(),
+  EMAIL_PASS: z.string(),
 });

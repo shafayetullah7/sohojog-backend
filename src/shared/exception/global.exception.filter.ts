@@ -5,7 +5,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { ResponseBuilder } from '../utils/response-builder/response.builder';
+import { ResponseBuilder } from '../../modules/common/response-builder/response.builder';
 import { getNewId } from '../utils/uuid/getNewUuid';
 import { Request } from 'express';
 import { Response } from 'express';

@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { ZodError } from 'zod';
 import { Request, Response } from 'express';
-import { ResponseBuilder } from '../utils/response-builder/response.builder';
-import { TerrorIssue } from '../utils/response-builder/response.interface';
+import { ResponseBuilder } from '../../modules/common/response-builder/response.builder';
+import { TerrorIssue } from '../../modules/common/response-builder/response.interface';
 import { getNewId } from '../utils/uuid/getNewUuid';
 
 @Catch(ZodError)

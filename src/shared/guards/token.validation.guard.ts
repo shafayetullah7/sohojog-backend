@@ -8,7 +8,7 @@ import {
 import { Request } from 'express';
 
 import { UserService } from 'src/modules/user-module/user/user.service';
-import * as dayjs from 'dayjs'
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class TokenValidationGuard implements CanActivate {
@@ -26,24 +26,26 @@ export class TokenValidationGuard implements CanActivate {
 
     const user = await this.userService.findUserById(jwtUser.userId);
 
-    if (!user || !user.passwordChangedAt) {
+    if (!user) {
       throw new UnauthorizedException('Unauthorized access');
     }
 
-    if (!jwtUser.iat) {
-      throw new UnauthorizedException('Unauthorizded');
-    }
+    if (user.hasPassword) {
+      if (!jwtUser.iat) {
+        throw new UnauthorizedException('Unauthorizded');
+      }
 
-    // console.log(dayjs.unix(1724428387));
+      // console.log(dayjs.unix(1724428387));
 
-    if (user.hasPassword && user.passwordChangedAt) {
-      const tokenCreatedAt = dayjs.unix(jwtUser.iat);
-      const passwordChangedAt = dayjs(user.passwordChangedAt);
+      if (user.hasPassword && user.passwordChangedAt) {
+        const tokenCreatedAt = dayjs.unix(jwtUser.iat);
+        const passwordChangedAt = dayjs(user.passwordChangedAt);
 
-      console.log('Token Created At:', tokenCreatedAt.format());
-      console.log('Password Changed At:', passwordChangedAt.format());
-      if (tokenCreatedAt.isBefore(passwordChangedAt)) {
-        throw new UnauthorizedException('Token is no longer valid');
+        console.log('Token Created At:', tokenCreatedAt.format());
+        console.log('Password Changed At:', passwordChangedAt.format());
+        if (tokenCreatedAt.isBefore(passwordChangedAt)) {
+          throw new UnauthorizedException('Token is no longer valid');
+        }
       }
     }
 

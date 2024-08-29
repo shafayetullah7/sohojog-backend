@@ -22,13 +22,18 @@ export class EnvConfigService {
       REFRESH_TOKEN_SECRET: this.configService.get<string>(
         'REFRESH_TOKEN_SECRET',
       ),
+      OTP_TOKEN_SECRET: this.configService.get<string>('OTP_TOKEN_SECRET'),
+      GOOGLE_CLIENT_ID: this.configService.get<string>('GOOGLE_CLIENT_ID'),
       GOOGLE_CLIENT_SECRET: this.configService.get<string>(
         'GOOGLE_CLIENT_SECRET',
       ),
-      GOOGLE_CLIENT_ID: this.configService.get<string>('GOOGLE_CLIENT_ID'),
       GOOGLE_CALLBACK_URL: this.configService.get<string>(
         'GOOGLE_CALLBACK_URL',
       ),
+      EMAIL_HOST: this.configService.get<string>('EMAIL_HOST'),
+      EMAIL_PORT: this.configService.get<string>('EMAIL_PORT'),
+      EMAIL_USER: this.configService.get<string>('EMAIL_USER'),
+      EMAIL_PASS: this.configService.get<string>('EMAIL_PASS'),
     };
   }
 
@@ -56,6 +61,9 @@ export class EnvConfigService {
   get refreshTokenSecret(): string {
     return this.envConfig.REFRESH_TOKEN_SECRET;
   }
+  get otpTokenSecret(): string {
+    return this.envConfig.OTP_TOKEN_SECRET;
+  }
   get nodeEnv(): string {
     return this.envConfig.NODE_ENV;
   }
@@ -67,5 +75,17 @@ export class EnvConfigService {
   }
   get googleCallbackUrl(): string {
     return this.envConfig.GOOGLE_CALLBACK_URL;
+  }
+  get emailHost(): string {
+    return this.envConfig.EMAIL_HOST;
+  }
+  get emailPort(): number {
+    return this.envConfig.EMAIL_PORT;
+  }
+  get emailUser(): string {
+    return this.envConfig.EMAIL_USER;
+  }
+  get emailPass(): string {
+    return this.envConfig.EMAIL_PASS;
   }
 }

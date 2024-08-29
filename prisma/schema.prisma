@@ -38,5 +38,5 @@ model Otp {
   otp       String
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-  exiresAt  DateTime
+  expiresAt  DateTime
 }

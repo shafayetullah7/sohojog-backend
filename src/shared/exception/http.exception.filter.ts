@@ -5,7 +5,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ResponseBuilder } from '../utils/response-builder/response.builder';
+import { ResponseBuilder } from '../../modules/common/response-builder/response.builder';
 import { getNewId } from '../utils/uuid/getNewUuid';
 
 @Catch(HttpException)
