@@ -21,6 +21,19 @@ import { GoogleAuthService } from './services/google/google.auth.service';
 import { GenericUser } from 'src/constants/interfaces/req-user/generic.user';
 import { JwtUtilsService } from 'src/modules/common/jwt/jwt-utils.service';
 import { JwtRefreshGuard } from 'src/shared/guards/jwt.refresh.gaurd';
+import { JwtAuthGaurd } from 'src/shared/guards/jwt.auth.gaurd';
+import { TokenValidationGuard } from 'src/shared/guards/token.validation.guard';
+import { RolesGuard } from 'src/shared/guards/roles.guard';
+import { Roles } from 'src/shared/custom-decorator/roles.decorator';
+import { Role } from 'src/constants/enums/user.roles';
+import {
+  VerifynUserBodyDto,
+  verifyUserBodySchema,
+} from './dto/verify.user.dto';
+import { SendOtpBodyDto, sendOtpBodySchema } from './dto/send.otp.dto';
+import { VerifyOtpBodyDto } from './dto/verify.otp.dto';
+import { OtpGuard } from 'src/shared/guards/jwt.otp.guard';
+import { ResetPassBodyDto, resetPassBodySchema } from './dto/reset.pass.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -32,22 +45,79 @@ export class AuthController {
 
   @Post('sign-up')
   @HttpCode(201)
-  @ZodValidation(createUserBodySchema)
-  async signUpUser(@Body() data: CreateUserBodyDto) {
+  // @ZodValidation(createUserBodySchema)
+  async signUpUser(
+    @Body(ZodValidation(createUserBodySchema)) data: CreateUserBodyDto,
+  ) {
     const result = await this.localAuthService.signUp(data);
     return result;
   }
 
   @HttpCode(200)
   @Post('login')
-  @ZodValidation(loginUserBodySchema)
-  async login(@Body() data: LoginUserBodyDto) {
+  // @ZodValidation(loginUserBodySchema)
+  async login(
+    @Body(ZodValidation(loginUserBodySchema)) data: LoginUserBodyDto,
+  ) {
     const result = await this.localAuthService.login(data);
 
     return result;
   }
 
-  
+  @HttpCode(200)
+  @Post('verify')
+  @UseGuards(JwtAuthGaurd, RolesGuard)
+  @Roles(Role.User)
+  // @ZodValidation(verifyUserBodySchema)
+  async verifyUser(
+    @Body(ZodValidation(verifyUserBodySchema)) data: VerifynUserBodyDto,
+    @Req() req: Request,
+  ) {
+    const { user } = req;
+    if (!user?.userId) {
+      throw new UnauthorizedException('Unauthorized access.');
+    }
+    const result = await this.localAuthService.verifyUser(
+      user.userId,
+      data.otp,
+    );
+    return result;
+  }
+
+  @HttpCode(200)
+  @Post('send-otp')
+  async sendOtp(@Body(ZodValidation(sendOtpBodySchema)) data: SendOtpBodyDto) {
+    const result = await this.localAuthService.sendOtp(data);
+    return result;
+  }
+
+  @HttpCode(200)
+  @Post('verify-otp')
+  async verifyOtp(
+    @Body(ZodValidation(verifyUserBodySchema)) data: VerifyOtpBodyDto,
+  ) {
+    const result = await this.localAuthService.verifyOtp(data);
+  }
+
+  @HttpCode(200)
+  @Post('reset-password')
+  @UseGuards(OtpGuard)
+  async resetPassword(
+    @Body(ZodValidation(resetPassBodySchema)) data: ResetPassBodyDto,
+    @Req() req: Request,
+  ) {
+    const { user } = req;
+    if (!user) {
+      throw new UnauthorizedException('Use');
+    }
+
+    const result = await this.localAuthService.resetPass({
+      ...data,
+      userId: user.userId,
+    });
+
+    return result;
+  }
 
   @Get('google/login')
   @UseGuards(GoogleAuthGuard)
@@ -87,7 +157,7 @@ export class AuthController {
   async refreshToken(@Req() req: Request) {
     const user = req.user;
     if (!user) {
-      throw new UnauthorizedException('User not found.');
+      throw new UnauthorizedException('Unauthorized.');
     }
     const result = await this.localAuthService.refreshToken(user.userId);
 

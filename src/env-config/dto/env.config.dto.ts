@@ -15,4 +15,5 @@ export const EnvConfigSchema = z.object({
   EMAIL_PORT: z.string().transform(Number).default('587'),
   EMAIL_USER: z.string(),
   EMAIL_PASS: z.string(),
+  QEV_API: z.string(),
 });

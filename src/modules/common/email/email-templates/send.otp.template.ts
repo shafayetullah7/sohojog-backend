@@ -13,7 +13,7 @@ export const getGenericVerificationTemplate = ({
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>ZZOLA Verification</title>
+          <title>SOHOJOG Verification</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -81,14 +81,14 @@ export const getGenericVerificationTemplate = ({
             </div>
             <div class="email-body">
               <p>Hello ${userName},</p>
-              <p>Thank you for using ZZOLA. Please use the following OTP to complete your ${verificationPurpose} verification:</p>
+              <p>Thank you for using SOHOJOG. Please use the following OTP to complete your ${verificationPurpose} verification:</p>
               <div class="otp-code">${otp}</div>
               <p>If you did not request this, please ignore this email.</p>
               <p>Thank you!</p>
-              <p>Best Regards,<br>The ZZOLA Team</p>
+              <p>Best Regards,<br>The SOHOJOG Team</p>
             </div>
             <div class="email-footer">
-              <p>&copy; ${new Date().getFullYear()} ZZOLA. All rights reserved.</p>
+              <p>&copy; ${new Date().getFullYear()} SOHOJOG. All rights reserved.</p>
               <p>Your Company Address</p>
             </div>
           </div>

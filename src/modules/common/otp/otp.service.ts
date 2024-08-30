@@ -22,7 +22,7 @@ export class OtpService {
     });
   }
 
-  async createOto(
+  async createOtp(
     tx: Prisma.TransactionClient,
     userInfo: { email: string },
   ): Promise<string> {
@@ -35,13 +35,13 @@ export class OtpService {
         email: userInfo.email,
       },
       create: {
-        otp,
+        otp: hashedOtp,
         expiresAt,
         email: userInfo.email,
       },
       update: {
         expiresAt,
-        otp,
+        otp: hashedOtp,
         used: false,
       },
     });
@@ -49,47 +49,47 @@ export class OtpService {
     return otp;
   }
 
-  async sendOtp(user: Partial<User>): Promise<void> {
-    // Use Prisma's transaction API to ensure both operations succeed or fail together
-    await this.prisma.$transaction(async (prisma) => {
-      try {
-        if (!user.name) {
-          throw new InternalServerErrorException('User name was not provided.');
-        }
-        if (!user.email) {
-          throw new InternalServerErrorException(
-            'User email was not provided.',
-          );
-        }
-        const otp = await this.generateOtp();
-        const hashedOtp = await this.passManager.hashPassword(otp);
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
-        // Save OTP to database
-        await prisma.otp.create({
-          data: {
-            email: user.email,
-            otp: hashedOtp,
-            expiresAt,
-          },
-        });
+  // async sendOtp(user: Partial<User>): Promise<void> {
+  //   // Use Prisma's transaction API to ensure both operations succeed or fail together
+  //   await this.prisma.$transaction(async (prisma) => {
+  //     try {
+  //       if (!user.name) {
+  //         throw new InternalServerErrorException('User name was not provided.');
+  //       }
+  //       if (!user.email) {
+  //         throw new InternalServerErrorException(
+  //           'User email was not provided.',
+  //         );
+  //       }
+  //       const otp = await this.generateOtp();
+  //       const hashedOtp = await this.passManager.hashPassword(otp);
+  //       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+  //       // Save OTP to database
+  //       await prisma.otp.create({
+  //         data: {
+  //           email: user.email,
+  //           otp: hashedOtp,
+  //           expiresAt,
+  //         },
+  //       });
 
-        // Send OTP email
-        await this.emailService.sendWelcomeVerificationOtp(
-          user.email,
-          otp,
-          user.name,
-        );
-      } catch (error) {
-        // Handle error (log it, rethrow, etc.)
-        console.error('Error sending OTP:', error);
-        throw error;
-      } finally {
-        await this.prisma.$disconnect(); // Close Prisma client connection
-      }
-    });
-  }
+  //       // Send OTP email
+  //       await this.emailService.sendWelcomeVerificationOtp(
+  //         user.email,
+  //         otp,
+  //         user.name,
+  //       );
+  //     } catch (error) {
+  //       // Handle error (log it, rethrow, etc.)
+  //       console.error('Error sending OTP:', error);
+  //       throw error;
+  //     } finally {
+  //       await this.prisma.$disconnect(); // Close Prisma client connection
+  //     }
+  //   });
+  // }
 
-  async verifyOtp(email: string, hashedOtp: string): Promise<boolean> {
+  async verifyOtp(email: string, otp: string): Promise<boolean> {
     const otpRecord = await this.prisma.otp.findUnique({
       where: { email },
     });
@@ -98,17 +98,18 @@ export class OtpService {
       return false;
     }
 
-    const isMatch = await this.passManager.matchPassword(
-      hashedOtp,
-      otpRecord.otp,
-    );
+    console.log(email, otpRecord, otp);
+    const isMatch = await this.passManager.matchPassword(otp, otpRecord.otp);
 
-    if (isMatch) {
-      await this.prisma.otp.update({
-        where: { email },
-        data: { used: true },
-      });
+    if (!isMatch) {
+      return isMatch;
     }
+    console.log('is match', isMatch);
+
+    await this.prisma.otp.update({
+      where: { email },
+      data: { used: true },
+    });
 
     return isMatch;
   }

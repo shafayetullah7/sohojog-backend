@@ -18,6 +18,10 @@ import { ZodValidationPipe } from '../custom-pipes/zod.validation.pipe';
 //   return applyDecorators(Query(), UsePipes(new ZodValidationPipe(schema)));
 // }
 
-export const ZodValidation = (...schemas: ZodSchema[]) => {
-  return UsePipes(...schemas.map((schema) => new ZodValidationPipe(schema)));
+// export const ZodValidation = (...schemas: ZodSchema[]) => {
+//   return UsePipes(...schemas.map((schema) => new ZodValidationPipe(schema)));
+// };
+
+export const ZodValidation = (schema: ZodSchema) => {
+  return new ZodValidationPipe(schema);
 };

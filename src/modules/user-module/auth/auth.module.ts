@@ -15,6 +15,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { EmailService } from 'src/modules/common/email/email.service';
 import { EmailModule } from 'src/modules/common/email/email.module';
 import { OtpModule } from 'src/modules/common/otp/otp.module';
+import { EmailVerificationModule } from 'src/modules/common/email-verification/email-verification.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { OtpModule } from 'src/modules/common/otp/otp.module';
     ResponseBuilderModule,
     EmailModule,
     OtpModule,
+    EmailVerificationModule,
   ],
   providers: [
     LocalAuthService,

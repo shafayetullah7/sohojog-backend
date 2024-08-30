@@ -16,8 +16,10 @@ export class UserController {
 
   // @Version('1')
   @Post()
-  @ZodValidation(createUserSchema)
-  createUser(@Body() createUserDto: CreateUserDto) {
+  // @ZodValidation(createUserSchema)
+  createUser(
+    @Body(ZodValidation(createUserSchema)) createUserDto: CreateUserDto,
+  ) {
     const result = this.userService.createUser(createUserDto);
     return result;
   }

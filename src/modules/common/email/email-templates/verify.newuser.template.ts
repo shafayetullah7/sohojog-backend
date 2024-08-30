@@ -11,7 +11,7 @@ export const getWelcomeOtpTemplate = ({
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ZZOLA Email</title>
+        <title>SOHOJOG Email</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -75,19 +75,19 @@ export const getWelcomeOtpTemplate = ({
       <body>
         <div class="email-container">
           <div class="email-header">
-            <h1>Welcome to ZZOLA</h1>
+            <h1>Welcome to SOHOJOG</h1>
           </div>
           <div class="email-body">
             <p>Hello ${userName},</p>
-            <p>Thank you for joining ZZOLA, your go-to project management tool. We're excited to have you on board!</p>
+            <p>Thank you for joining SOHOJOG, your go-to project management tool. We're excited to have you on board!</p>
             <p>Please use the following OTP to complete your registration:</p>
             <div class="otp-code">${otp}</div>
             <p>If you did not request this, please ignore this email.</p>
             <p>Thank you!</p>
-            <p>Best Regards,<br>The ZZOLA Team</p>
+            <p>Best Regards,<br>The SOHOJOG Team</p>
           </div>
           <div class="email-footer">
-            <p>&copy; ${new Date().getFullYear()} ZZOLA. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} SOHOJOG. All rights reserved.</p>
             <p>Your Company Address</p>
           </div>
         </div>

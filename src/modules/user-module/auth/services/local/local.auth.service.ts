@@ -19,6 +19,11 @@ import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter'
 import { EmailService } from 'src/modules/common/email/email.service';
 import { OtpService } from 'src/modules/common/otp/otp.service';
 import { User } from '@prisma/client';
+import * as dayjs from 'dayjs';
+import { SendOtpBodyDto } from '../../dto/send.otp.dto';
+import { ResetPassBodyDto, ResetPassDataDto } from '../../dto/reset.pass.dto';
+import { VerifyOtpBodyDto } from '../../dto/verify.otp.dto';
+import { EmailVerificationService } from 'src/modules/common/email-verification/email-verification.service';
 
 @Injectable()
 export class LocalAuthService {
@@ -30,54 +35,70 @@ export class LocalAuthService {
     private readonly userService: UserService,
     private readonly emailService: EmailService,
     private readonly otpService: OtpService,
+    private readonly emailVerification: EmailVerificationService,
   ) {}
 
   async signUp(data: CreateUserBodyDto): Promise<ResponseBuilder<User>> {
-    const result = await this.prismaService.$transaction(async (tx) => {
-      const existingUser = await tx.user.findFirst({
-        where: { email: data.email },
-      });
-      console.log('existingUser', existingUser);
-      if (existingUser) {
-        throw new ConflictException('User already exists with this email');
-      }
+    const result = await this.prismaService.$transaction(
+      async (tx) => {
+        const existingUser = await tx.user.findFirst({
+          where: { email: data.email },
+        });
+        console.log('existingUser', existingUser);
+        if (existingUser) {
+          throw new ConflictException('User already exists with this email');
+        }
 
-      data.password = await this.passwordManager.hashPassword(data.password);
+        // Email verification for valid mail check
 
-      const user = await tx.user.create({ data });
-      if (!user) {
-        throw new InternalServerErrorException('Failed to sign up');
-      }
+        // const emailVerificationData = await this.emailVerification.verifyEmail(
+        //   data.email,
+        // );
 
-      const safeUser = getSafeUserInfo(user);
-      const tokenPayload: JwtPayload = {
-        userId: safeUser.id,
-        email: safeUser.email,
-        verified: safeUser.verified,
-        roles: [Role.User],
-      };
-      const token = this.jwtUtilsService.generateToken(tokenPayload);
-      const refreshToken =
-        this.jwtUtilsService.generateRefreshToken(tokenPayload);
+        // console.log(emailVerificationData);
+        // throw new Error();
 
-      const otp = await this.otpService.createOto(tx, { email: user.email });
+        data.password = await this.passwordManager.hashPassword(data.password);
 
-      await this.emailService.sendWelcomeVerificationOtp(
-        user.email,
-        otp,
-        user.name,
-      );
-      if (user) {
-        return this.response
-          .setVerificationRequired(true)
-          .setData({ user: safeUser })
-          .setToken(token)
-          .setRefreshToken(refreshToken)
-          .setMessage('User created. Please verify your email to continue.');
-      } else {
-        throw new InternalServerErrorException('Failed to sign up.');
-      }
-    });
+        console.log('before user', dayjs().unix());
+        const user = await tx.user.create({ data });
+        if (!user) {
+          throw new InternalServerErrorException('Failed to sign up');
+        }
+
+        const safeUser = getSafeUserInfo(user);
+        const tokenPayload: JwtPayload = {
+          userId: safeUser.id,
+          email: safeUser.email,
+          verified: safeUser.verified,
+          roles: [Role.User],
+        };
+
+        console.log('before token', dayjs().unix());
+        const token = this.jwtUtilsService.generateToken(tokenPayload);
+        const refreshToken =
+          this.jwtUtilsService.generateRefreshToken(tokenPayload);
+
+        const otp = await this.otpService.createOtp(tx, { email: user.email });
+
+        await this.emailService.sendWelcomeVerificationOtp(
+          user.email,
+          otp,
+          user.name,
+        );
+        if (user) {
+          return this.response
+            .setVerificationRequired(true)
+            .setData({ user: safeUser })
+            .setToken(token)
+            .setRefreshToken(refreshToken)
+            .setMessage('User created. Please verify your email to continue.');
+        } else {
+          throw new InternalServerErrorException('Failed to sign up.');
+        }
+      },
+      { maxWait: 10000, timeout: 10000 },
+    );
     return result;
   }
 
@@ -146,7 +167,7 @@ export class LocalAuthService {
       .setMessage('Logged in.');
   }
 
-  async verifyUser(userId: string, hashedOtp: string) {
+  async verifyUser(userId: string, otp: string) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId },
     });
@@ -157,17 +178,17 @@ export class LocalAuthService {
       throw new ConflictException('User is already verified.');
     }
 
-    const otpMatched = await this.otpService.verifyOtp(user.email, hashedOtp);
+    const otpMatched = await this.otpService.verifyOtp(user.email, otp);
     if (!otpMatched) {
       throw new BadRequestException('Invalid otp.');
     }
 
-    const updatedUser = this.prismaService.user.update({
+    const updatedUser = await this.prismaService.user.update({
       where: { id: userId },
       data: { verified: true },
     });
 
-    const safeUser = getSafeUserInfo(user);
+    const safeUser = getSafeUserInfo(updatedUser);
     const tokenPayload: JwtPayload = {
       userId: safeUser.id,
       email: safeUser.email,
@@ -202,15 +223,102 @@ export class LocalAuthService {
     };
 
     const accessToken = this.jwtUtilsService.generateToken(payload);
+    const refreshToken = this.jwtUtilsService.generateRefreshToken(payload);
 
     const safeUser = getSafeUserInfo(user);
 
     // return { accessToken, refreshToken: newRefreshToken };
     return this.response
       .setToken(accessToken)
-      .setSessionExpierity(true)
+      .setRefreshToken(refreshToken)
+      .setSessionExpierity(false)
       .setData(safeUser)
       .setMessage('Token refreshed.');
+  }
+
+  async sendOtp(data: SendOtpBodyDto) {
+    const result = await this.prismaService.$transaction(async (tx) => {
+      const user = await tx.user.findFirst({
+        where: { email: data.email },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found.');
+      }
+
+      const otp = await this.otpService.createOtp(tx, { email: user.email });
+
+      if (!otp) {
+        throw new InternalServerErrorException('Failed to send otp.');
+      }
+
+      await this.emailService.sendGenericVerificationOtp(
+        user.email,
+        otp,
+        user.name,
+        'Reset password',
+      );
+
+      return this.response
+        .setData(null)
+        .setMessage('An OTP has been sent to the email.');
+    });
+    return result;
+  }
+
+  async verifyOtp(data: VerifyOtpBodyDto) {
+    const user = await this.prismaService.user.findFirst({
+      where: { email: data.email },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const otpMatched = await this.otpService.verifyOtp(user.email, data.otp);
+    if (!otpMatched) {
+      throw new BadRequestException('Invalid otp.');
+    }
+
+    const payload: JwtPayload = {
+      userId: user.id,
+      email: user.email,
+      verified: user.verified,
+      roles: [Role.User],
+    };
+
+    const otpToken = this.jwtUtilsService.generateOtpToken(payload);
+
+    return this.response
+      .setMessage('Otp validated.')
+      .setOtpToken(otpToken)
+      .setData(null);
+  }
+
+  async resetPass(data: ResetPassDataDto): Promise<ResponseBuilder<User>> {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: data.userId },
+    });
+    if (!user) {
+      throw new ConflictException('User not found');
+    }
+
+    data.password = await this.passwordManager.hashPassword(data.password);
+
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: data.userId },
+      data: { password: data.password, passwordChangedAt: new Date() },
+    });
+    if (!updatedUser) {
+      throw new InternalServerErrorException('Failed to update user');
+    }
+
+    if (!updatedUser) {
+      throw new InternalServerErrorException('Failed to reset pass.');
+    }
+    return this.response
+      .setSessionExpierity(true)
+      .setData(null)
+      .setMessage('Password resetted. Please login again.');
+    // return result;
   }
 }
 // async sendVerificationMail(data: { id: string; email: string }) {

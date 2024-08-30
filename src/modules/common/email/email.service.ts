@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { getWelcomeOtpTemplate } from './email-templates/verify.newuser.template';
 import { EnvConfigService } from 'src/env-config/env.config.service';
+import { getGenericVerificationTemplate } from './email-templates/send.otp.template';
 
 @Injectable()
 export class EmailService {
@@ -30,6 +31,30 @@ export class EmailService {
         to: email,
         subject: 'Your OTP Code',
         html: getWelcomeOtpTemplate({ userName, otp }),
+      });
+
+      console.log('Message sent: %s', info.messageId);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to send email');
+    }
+  }
+
+  async sendGenericVerificationOtp(
+    email: string,
+    otp: string,
+    userName: string,
+    purpose: string,
+  ) {
+    try {
+      const info = await this.transporter.sendMail({
+        from: `"Sohojog" <${this.envConfig.emailUser}>`,
+        to: email,
+        subject: 'Your OTP Code',
+        html: getGenericVerificationTemplate({
+          userName,
+          otp,
+          verificationPurpose: purpose,
+        }),
       });
 
       console.log('Message sent: %s', info.messageId);

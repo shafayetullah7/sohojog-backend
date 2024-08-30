@@ -34,6 +34,7 @@ export class EnvConfigService {
       EMAIL_PORT: this.configService.get<string>('EMAIL_PORT'),
       EMAIL_USER: this.configService.get<string>('EMAIL_USER'),
       EMAIL_PASS: this.configService.get<string>('EMAIL_PASS'),
+      QEV_API: this.configService.get<string>('QEV_API'),
     };
   }
 
@@ -87,5 +88,8 @@ export class EnvConfigService {
   }
   get emailPass(): string {
     return this.envConfig.EMAIL_PASS;
+  }
+  get qevApi(): string {
+    return this.envConfig.QEV_API;
   }
 }

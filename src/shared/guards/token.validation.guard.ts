@@ -26,6 +26,8 @@ export class TokenValidationGuard implements CanActivate {
 
     const user = await this.userService.findUserById(jwtUser.userId);
 
+    console.log('user', user);
+
     if (!user) {
       throw new UnauthorizedException('Unauthorized access');
     }
@@ -41,8 +43,19 @@ export class TokenValidationGuard implements CanActivate {
         const tokenCreatedAt = dayjs.unix(jwtUser.iat);
         const passwordChangedAt = dayjs(user.passwordChangedAt);
 
-        console.log('Token Created At:', tokenCreatedAt.format());
-        console.log('Password Changed At:', passwordChangedAt.format());
+        // const differenceInSeconds = tokenCreatedAt.diff(
+        //   passwordChangedAt,
+        //   'milliseconds',
+        // );
+
+        // // Check the difference
+
+        // console.log(`Difference in seconds: ${differenceInSeconds}`);
+
+        // console.log('Token Created At:', tokenCreatedAt.unix());
+        // console.log('Password Changed At:', passwordChangedAt.unix());
+        // console.log(tokenCreatedAt.isBefore(passwordChangedAt));
+        // console.log(tokenCreatedAt.isAfter(passwordChangedAt));
         if (tokenCreatedAt.isBefore(passwordChangedAt)) {
           throw new UnauthorizedException('Token is no longer valid');
         }
