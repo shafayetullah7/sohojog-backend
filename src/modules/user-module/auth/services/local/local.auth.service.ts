@@ -237,38 +237,43 @@ export class LocalAuthService {
   }
 
   async sendOtp(data: SendOtpBodyDto) {
-    const result = await this.prismaService.$transaction(async (tx) => {
-      const user = await tx.user.findFirst({
-        where: { email: data.email },
-      });
-      if (!user) {
-        throw new NotFoundException('User not found.');
-      }
+    const result = await this.prismaService.$transaction(
+      async (tx) => {
+        const user = await tx.user.findFirst({
+          where: { email: data.email },
+        });
+        if (!user) {
+          throw new NotFoundException('User not found.');
+        }
 
-      const otp = await this.otpService.createOtp(tx, { email: user.email });
+        const otp = await this.otpService.createOtp(tx, { email: user.email });
 
-      if (!otp) {
-        throw new InternalServerErrorException('Failed to send otp.');
-      }
+        if (!otp) {
+          throw new InternalServerErrorException('Failed to send otp.');
+        }
 
-      await this.emailService.sendGenericVerificationOtp(
-        user.email,
-        otp,
-        user.name,
-        'Reset password',
-      );
+        await this.emailService.sendGenericVerificationOtp(
+          user.email,
+          otp,
+          user.name,
+          'Reset password',
+        );
 
-      return this.response
-        .setData(null)
-        .setMessage('An OTP has been sent to the email.');
-    });
+        return this.response
+          .setData(null)
+          .setMessage('An OTP has been sent to the email.');
+      },
+      { maxWait: 10000, timeout: 10000 },
+    );
     return result;
   }
 
   async verifyOtp(data: VerifyOtpBodyDto) {
-    const user = await this.prismaService.user.findFirst({
+    const user = await this.prismaService.user.findUnique({
       where: { email: data.email },
     });
+    console.log('..............', data);
+    console.log(user);
     if (!user) {
       throw new NotFoundException('User not found.');
     }

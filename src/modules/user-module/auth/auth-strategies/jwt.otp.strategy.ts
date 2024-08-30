@@ -5,7 +5,7 @@ import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
 import { EnvConfigService } from 'src/env-config/env.config.service';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-otp') {
+export class JwtOtpStrategy extends PassportStrategy(Strategy, 'jwt-otp') {
   constructor(private readonly envConfigService: EnvConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

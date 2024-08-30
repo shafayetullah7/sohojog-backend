@@ -16,6 +16,7 @@ import { EmailService } from 'src/modules/common/email/email.service';
 import { EmailModule } from 'src/modules/common/email/email.module';
 import { OtpModule } from 'src/modules/common/otp/otp.module';
 import { EmailVerificationModule } from 'src/modules/common/email-verification/email-verification.module';
+import { JwtOtpStrategy } from './auth-strategies/jwt.otp.strategy';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { EmailVerificationModule } from 'src/modules/common/email-verification/e
     GoogleStrategy,
     GoogleAuthService,
     JwtRefreshStrategy,
+    JwtOtpStrategy,
   ],
   controllers: [AuthController],
 })

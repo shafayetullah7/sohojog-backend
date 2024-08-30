@@ -31,7 +31,7 @@ import {
   verifyUserBodySchema,
 } from './dto/verify.user.dto';
 import { SendOtpBodyDto, sendOtpBodySchema } from './dto/send.otp.dto';
-import { VerifyOtpBodyDto } from './dto/verify.otp.dto';
+import { VerifyOtpBodyDto, verifyOtpBodySchema } from './dto/verify.otp.dto';
 import { OtpGuard } from 'src/shared/guards/jwt.otp.guard';
 import { ResetPassBodyDto, resetPassBodySchema } from './dto/reset.pass.dto';
 
@@ -65,7 +65,7 @@ export class AuthController {
   }
 
   @HttpCode(200)
-  @Post('verify')
+  @Post('verify-user')
   @UseGuards(JwtAuthGaurd, RolesGuard)
   @Roles(Role.User)
   // @ZodValidation(verifyUserBodySchema)
@@ -94,9 +94,11 @@ export class AuthController {
   @HttpCode(200)
   @Post('verify-otp')
   async verifyOtp(
-    @Body(ZodValidation(verifyUserBodySchema)) data: VerifyOtpBodyDto,
+    @Body(ZodValidation(verifyOtpBodySchema)) data: VerifyOtpBodyDto,
   ) {
+    console.log('*****************');
     const result = await this.localAuthService.verifyOtp(data);
+    return result;
   }
 
   @HttpCode(200)
@@ -108,7 +110,7 @@ export class AuthController {
   ) {
     const { user } = req;
     if (!user) {
-      throw new UnauthorizedException('Use');
+      throw new UnauthorizedException('Unauthroized access.');
     }
 
     const result = await this.localAuthService.resetPass({
