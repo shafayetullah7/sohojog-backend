@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, createUserSchema } from './dto/create.user.dto';
 // import { Request } from 'express';
@@ -29,5 +37,19 @@ export class UserController {
   @Roles(Role.User)
   getProfile(@Req() request: Request) {
     return { user: request.user };
+  }
+
+  @Get('get-me')
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  @Roles(Role.User)
+  async getMe(@Req() req: Request) {
+    const { user } = req;
+
+    if (!user) {
+      throw new NotFoundException('Unauthorized.');
+    }
+
+    const result = await this.userService.getMe(user.userId);
+    return result;
   }
 }
