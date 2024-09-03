@@ -143,14 +143,14 @@ export class AuthController {
     const token = this.jwtUtilsService.generateToken(payload);
 
     // const result = await this.googleAuthService.loginWithGoogle(payload);
-    // res.cookie('secureToken', token, {
-    //   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    //   httpOnly: true,
-    //   secure: true,
-    //   sameSite: 'none',
-    // });
-    // res.redirect(`http://www.abc12345321.com?token=${token}`);
-    res.json({});
+    res.cookie('secureToken', token, {
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+    });
+    res.redirect(`http://localhost:3000/intercept/google?token=${token}`);
+    // res.json({});
   }
 
   @UseGuards(JwtRefreshGuard)
