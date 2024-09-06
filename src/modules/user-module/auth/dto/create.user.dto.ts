@@ -5,15 +5,11 @@ export const createUserBodySchema = z
   .object({
     name: z
       .string({
-        required_error: 'Firstname is required',
-        invalid_type_error: 'Firstname must be string',
+        required_error: 'Name is required',
+        invalid_type_error: 'Name must be string',
       })
-      .min(1, 'Firstname is required')
-      .max(200, 'Firstname cannot exceed 200 characters')
-      .regex(
-        /^[A-Za-z]+$/,
-        'Firstname must contain only alphabetic characters',
-      ),
+      .min(1, 'Name is required')
+      .max(200, 'Name cannot exceed 200 characters'),
 
     email: z
       .string()
