@@ -15,7 +15,7 @@ import { JwtAuthGaurd } from '../../../shared/guards/jwt.auth.gaurd';
       useFactory: async (EnvConfigService: EnvConfigService) => ({
         secret: EnvConfigService.jwtSecret,
         signOptions: {
-          expiresIn: '10d',
+          expiresIn: '15m',
         },
       }),
     }),

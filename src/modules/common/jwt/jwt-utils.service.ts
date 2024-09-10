@@ -22,7 +22,7 @@ export class JwtUtilsService {
   generateRefreshToken(payload: JwtPayload) {
     return this.jwtService.sign(payload, {
       secret: this.envConfig.refreshTokenSecret,
-      expiresIn: '10d',
+      expiresIn: '30d',
     });
   }
 
