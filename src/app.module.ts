@@ -19,6 +19,7 @@ import { RequestStartTimeMiddleware } from './global/middleware/startTimeStampMi
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { OtpModule } from './modules/common/otp/otp.module';
 import { EmailVerificationModule } from './modules/common/email-verification/email-verification.module';
+import { ProjectModule } from './modules/user-module/project/project.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { EmailVerificationModule } from './modules/common/email-verification/ema
     ]),
     OtpModule,
     EmailVerificationModule,
+    ProjectModule,
   ],
   controllers: [AppController],
   providers: [

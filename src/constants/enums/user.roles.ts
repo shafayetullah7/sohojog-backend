@@ -1,4 +1,6 @@
 export enum Role {
-  Admin = 'admin',
-  User = 'user',
+  Admin = 'ADMIN',
+  User = 'USER',
 }
+
+// console.log(Object.values(Role))

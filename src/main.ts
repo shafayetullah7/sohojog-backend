@@ -21,7 +21,6 @@ async function bootstrap() {
   });
   app.use(helmet());
 
-
   app.use(cookieParser());
 
   app.enableVersioning({
