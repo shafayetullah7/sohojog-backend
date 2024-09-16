@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 
-import { UserService } from 'src/modules/user-module/user/user.service';
+import { UserService } from 'src/api/user-module/user/user.service';
 import * as dayjs from 'dayjs';
 
 @Injectable()

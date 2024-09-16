@@ -1,12 +1,12 @@
 import {
-    Prisma,
+  Prisma,
   ProjectPriority,
   ProjectStatus,
   ProjectVisibility,
 } from '@prisma/client';
 import { z } from 'zod';
 
-export const getProjectsQuerySchema = z
+export const getMyProjectsQuerySchema = z
   .object({
     id: z.string().uuid(),
     searchTerm: z.string().max(255, 'search key is too long.'),
@@ -42,4 +42,4 @@ export const getProjectsQuerySchema = z
     return whereClause;
   });
 
-export type GetProjectsQueryDto = z.infer<typeof getProjectsQuerySchema>;
+export type GetMyProjectsQueryDto = z.infer<typeof getMyProjectsQuerySchema>;

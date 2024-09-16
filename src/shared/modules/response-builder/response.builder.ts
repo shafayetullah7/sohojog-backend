@@ -5,7 +5,7 @@ import {
   Taccess,
   Tmeta,
   Twarning,
-} from 'src/modules/common/response-builder/response.interface';
+} from 'src/shared/modules/response-builder/response.interface';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ResponseBuilder<T> {

@@ -3,13 +3,9 @@ import {
   ProjectStatus,
   ProjectVisibility,
 } from '@prisma/client';
-import {} from // ProjectPriority,
-// ProjectStatus,
-// ProjectVisibility,
-'src/constants/enums/project.e';
 import { z } from 'zod';
 
-export const createProjectBodySchema = z
+export const updateProjectBodySchema = z
   .object({
     title: z
       .string({
@@ -33,8 +29,28 @@ export const createProjectBodySchema = z
       .nativeEnum(ProjectVisibility)
       .default(ProjectVisibility.PRIVATE),
     priority: z.nativeEnum(ProjectPriority).default(ProjectPriority.MEDIUM),
-    tags: z.array(z.string()),
+    addTags: z
+      .array(z.string().trim())
+      .max(10, 'There can only be 10 or less tags.')
+      .refine(
+        (arr) =>
+          new Set(arr.map((str) => str.toLowerCase())).size === arr.length,
+        { message: 'Tags must be unique.' },
+      ),
+    removeTags: z
+      .array(z.string().uuid('Invalid tag id.'))
+      .max(10, 'There can only be 10 or less tags.')
+      .refine((arr) => new Set(arr).size === arr.length, {
+        message: 'Tags must be unique.',
+      }),
+  })
+  .partial();
+
+export const updateProjectParamSchema = z
+  .object({
+    id: z.string().uuid('Invalid tag id.'),
   })
   .strict();
 
-export type CreateProjectBodyDto = z.infer<typeof createProjectBodySchema>;
+export type UpdateProjectBodyDto = z.infer<typeof updateProjectBodySchema>;
+export type UpdateProjectParamDto = z.infer<typeof updateProjectParamSchema>;

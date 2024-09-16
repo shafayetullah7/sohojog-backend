@@ -3,13 +3,11 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { EnvConfigModule } from './env-config/env.config.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { UserModule } from './modules/user-module/user/user.module';
-import { AuthModule } from './modules/user-module/auth/auth.module';
-import { PasswordManagerModule } from './modules/common/password-manager/password-manager.module';
-import { JwtUtilsModule } from './modules/common/jwt/jwt-utils.module';
+import { PasswordManagerModule } from './shared/modules/password-manager/password-manager.module';
+import { JwtUtilsModule } from './shared/modules/jwt/jwt-utils.module';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 // import { ResponseInterceptor } from './shared/interceptors/response.formatter.interceptor';
-import { EmailModule } from './modules/common/email/email.module';
+import { EmailModule } from './shared/modules/email/email.module';
 import { ZodExceptionFilter } from './shared/exception/zod.exception.filter';
 import { PrismaExceptionFilter } from './shared/exception/prisma.exception.filter';
 import { GlobalExceptionFilter } from './shared/exception/global.exception.filter';
@@ -17,16 +15,16 @@ import { ResponseInterceptor } from './shared/interceptors/response.formatter.in
 import { HttpExceptionFilter } from './shared/exception/http.exception.filter';
 import { RequestStartTimeMiddleware } from './global/middleware/startTimeStampMiddleware';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { OtpModule } from './modules/common/otp/otp.module';
-import { EmailVerificationModule } from './modules/common/email-verification/email-verification.module';
-import { ProjectModule } from './modules/user-module/project/project.module';
+import { OtpModule } from './shared/modules/otp/otp.module';
+import { EmailVerificationModule } from './shared/modules/email-verification/email-verification.module';
+import { ProjectsModule } from './api/m/projects/projects.module';
+import { AuthModule } from './api/user-module/auth/auth.module';
+import { UserModule } from './api/user-module/user/user.module';
 
 @Module({
   imports: [
     EnvConfigModule,
     PrismaModule,
-    UserModule,
-    AuthModule,
     PasswordManagerModule,
     JwtUtilsModule,
     EmailModule,
@@ -38,7 +36,10 @@ import { ProjectModule } from './modules/user-module/project/project.module';
     ]),
     OtpModule,
     EmailVerificationModule,
-    ProjectModule,
+    ProjectsModule,
+    AuthModule,
+    UserModule,
+    ProjectsModule,
   ],
   controllers: [AppController],
   providers: [

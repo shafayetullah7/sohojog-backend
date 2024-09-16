@@ -3,7 +3,7 @@ import { JwtUtilsService } from './jwt-utils.service';
 import { EnvConfigModule } from 'src/env-config/env.config.module';
 import { JwtModule } from '@nestjs/jwt';
 import { EnvConfigService } from 'src/env-config/env.config.service';
-import { JwtAuthGaurd } from '../../../shared/guards/jwt.auth.gaurd';
+import { JwtAuthGaurd } from '../../guards/jwt.auth.gaurd';
 
 @Module({
   providers: [JwtUtilsService, JwtAuthGaurd],
