@@ -12,23 +12,18 @@ export const updateProjectBodySchema = z
         required_error: 'Project name is required.',
         invalid_type_error: 'Project name must be string.',
       })
+      .trim()
       .min(1, 'Project name cannot be empty.')
-      .max(255, 'Project name cannot be larger than 255 characters.')
-      .trim(),
+      .max(255, 'Project name cannot be larger than 255 characters.'),
     description: z
       .string({ invalid_type_error: 'Description must be string' })
-      .max(1000, 'Description is too long.')
       .trim()
-      .optional(),
-    status: z.nativeEnum(ProjectStatus).default(ProjectStatus.PLANNING),
-    startDate: z
-      .date({ invalid_type_error: 'Invalid date' })
-      .default(new Date()),
-    endDate: z.date({ invalid_type_error: 'Invalid date' }).optional(),
-    visibility: z
-      .nativeEnum(ProjectVisibility)
-      .default(ProjectVisibility.PRIVATE),
-    priority: z.nativeEnum(ProjectPriority).default(ProjectPriority.MEDIUM),
+      .max(1000, 'Description is too long.'),
+    status: z.nativeEnum(ProjectStatus),
+    startDate: z.string().datetime('Invalid date'),
+    endDate: z.string().datetime('Invalid date'),
+    visibility: z.nativeEnum(ProjectVisibility),
+    priority: z.nativeEnum(ProjectPriority),
     addTags: z
       .array(z.string().trim())
       .max(10, 'There can only be 10 or less tags.')
@@ -44,6 +39,7 @@ export const updateProjectBodySchema = z
         message: 'Tags must be unique.',
       }),
   })
+  .strict()
   .partial();
 
 export const updateProjectParamSchema = z

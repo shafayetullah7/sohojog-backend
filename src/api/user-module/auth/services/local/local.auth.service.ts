@@ -60,7 +60,7 @@ export class LocalAuthService {
 
         data.password = await this.passwordManager.hashPassword(data.password);
 
-        console.log('before user', dayjs().unix());
+        // console.log('before user', dayjs().unix());
         const user = await tx.user.create({ data });
         if (!user) {
           throw new InternalServerErrorException('Failed to sign up');
@@ -74,7 +74,7 @@ export class LocalAuthService {
           roles: [Role.User],
         };
 
-        console.log('before token', dayjs().unix());
+        // console.log('before token', dayjs().unix());
         const token = this.jwtUtilsService.generateToken(tokenPayload);
         const refreshToken =
           this.jwtUtilsService.generateRefreshToken(tokenPayload);
@@ -272,8 +272,8 @@ export class LocalAuthService {
     const user = await this.prismaService.user.findUnique({
       where: { email: data.email },
     });
-    console.log('..............', data);
-    console.log(user);
+    // console.log('..............', data);
+    // console.log(user);
     if (!user) {
       throw new NotFoundException('User not found.');
     }

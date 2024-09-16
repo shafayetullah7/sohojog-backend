@@ -14,7 +14,7 @@ export class JwtOtpStrategy extends PassportStrategy(Strategy, 'jwt-otp') {
     });
   }
   async validate(payload: JwtUser) {
-    console.log('payload', payload);
+    // console.log('payload', payload);
     return payload;
   }
 }

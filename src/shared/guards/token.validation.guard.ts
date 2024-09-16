@@ -22,11 +22,11 @@ export class TokenValidationGuard implements CanActivate {
     if (!jwtUser || !jwtUser.iat) {
       throw new UnauthorizedException('Unauthorized access');
     }
-    console.log('jwtUser', jwtUser);
+    // console.log('jwtUser', jwtUser);
 
     const user = await this.userService.findUserById(jwtUser.userId);
 
-    console.log('user', user);
+    // console.log('user', user);
 
     if (!user) {
       throw new UnauthorizedException('Unauthorized access');

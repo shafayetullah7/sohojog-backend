@@ -49,7 +49,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
     // console.log(profile);
     // console.log(accessToken);
     // console.log(refreshToken);
-    console.log(data);
+    // console.log(data);
 
     const user = await this.googleAuthService.getUserWithGoogle(data);
 

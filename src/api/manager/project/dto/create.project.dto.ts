@@ -26,9 +26,10 @@ export const createProjectBodySchema = z
       .optional(),
     status: z.nativeEnum(ProjectStatus).default(ProjectStatus.PLANNING),
     startDate: z
-      .date({ invalid_type_error: 'Invalid date' })
-      .default(new Date()),
-    endDate: z.date({ invalid_type_error: 'Invalid date' }).optional(),
+      .string()
+      .datetime('Invalid date')
+      .default(new Date().toISOString()),
+    endDate: z.string().datetime('Invalid date').optional(),
     visibility: z
       .nativeEnum(ProjectVisibility)
       .default(ProjectVisibility.PRIVATE),
@@ -40,7 +41,8 @@ export const createProjectBodySchema = z
         (arr) =>
           new Set(arr.map((str) => str.toLowerCase())).size === arr.length,
         { message: 'Tags must be unique.' },
-      ),
+      )
+      .default([]),
   })
   .strict();
 

@@ -1,13 +1,17 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { CreateProjectBodyDto } from './dto/create.project.dto';
 import { GetMyProjectsQueryDto } from './dto/get.my.projets.dto';
 import { UpdateProjectBodyDto } from './dto/update.project.dto';
 
-
 @Injectable()
-export class ProjectsService {
+export class ProjectService {
   constructor(
     private readonly response: ResponseBuilder<any>,
     private readonly prisma: PrismaService,
@@ -19,14 +23,16 @@ export class ProjectsService {
     });
     if (existingProject) {
       throw new ConflictException(
-        'Already created a project wits similar title',
+        'Already created a project with similar title',
       );
     }
+
+    // console.log();
 
     const newProject = await this.prisma.project.create({
       data: {
         ...rest,
-        managerId: 'manager-id',
+        managerId: userId,
         tags: {
           create: tags.map((tag) => ({ tag })),
         },
@@ -50,7 +56,7 @@ export class ProjectsService {
     const projects = await this.prisma.project.findMany({
       where: { ...query, managerId: userId },
     });
-    this.response
+    return this.response
       .setSuccess(true)
       .setMessage('Projects retrieved.')
       .setData(projects);
@@ -61,7 +67,7 @@ export class ProjectsService {
     projectId: string,
     payload: UpdateProjectBodyDto,
   ) {
-    const result = this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const { addTags, removeTags, ...rest } = payload;
       const project = await tx.project.findUnique({
         where: { id: projectId, managerId: userId },
@@ -124,12 +130,14 @@ export class ProjectsService {
         },
         include: { tags: true },
       });
+
       return result;
     });
-    this.response
+    // console.log(result);
+
+    return this.response
       .setSuccess(true)
       .setMessage('Project updated')
       .setData(result);
-    return this.response;
   }
 }

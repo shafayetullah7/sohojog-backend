@@ -98,13 +98,13 @@ export class OtpService {
       return false;
     }
 
-    console.log(email, otpRecord, otp);
+    // console.log(email, otpRecord, otp);
     const isMatch = await this.passManager.matchPassword(otp, otpRecord.otp);
 
     if (!isMatch) {
       return isMatch;
     }
-    console.log('is match', isMatch);
+    // console.log('is match', isMatch);
 
     await this.prisma.otp.update({
       where: { email },

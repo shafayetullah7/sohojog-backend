@@ -96,7 +96,7 @@ export class AuthController {
   async verifyOtp(
     @Body(ZodValidation(verifyOtpBodySchema)) data: VerifyOtpBodyDto,
   ) {
-    console.log('*****************');
+    // console.log('*****************');
     const result = await this.localAuthService.verifyOtp(data);
     return result;
   }
@@ -169,7 +169,7 @@ export class AuthController {
   @Get()
   check(@Req() req: Request, @Res() res: Response) {
     // return { url: 'https://www.google.co.uk/' };
-    console.log(req.cookies);
+    // console.log(req.cookies);
 
     res.cookie('secureToken', 'Lkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk', {
       maxAge: 1000 * 20, // 7 days

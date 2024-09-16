@@ -17,9 +17,10 @@ import { RequestStartTimeMiddleware } from './global/middleware/startTimeStampMi
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { OtpModule } from './shared/modules/otp/otp.module';
 import { EmailVerificationModule } from './shared/modules/email-verification/email-verification.module';
-import { ProjectsModule } from './api/m/projects/projects.module';
+import { ProjectsModule } from './api/manager/project/project.module';
 import { AuthModule } from './api/user-module/auth/auth.module';
 import { UserModule } from './api/user-module/user/user.module';
+import { InvitationModule } from './api/manager/invitation/invitation.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { UserModule } from './api/user-module/user/user.module';
     AuthModule,
     UserModule,
     ProjectsModule,
+    InvitationModule,
   ],
   controllers: [AppController],
   providers: [
