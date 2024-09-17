@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "invitations" ALTER COLUMN "sentAt" DROP NOT NULL,
+ALTER COLUMN "sentAt" DROP DEFAULT;

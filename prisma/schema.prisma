@@ -103,7 +103,7 @@ model User {
   image               Image[]
   projectStakeholder  ProjectStakeholder[]
   Invitation          Invitation[]
-  participantions     Participantion[]     @relation("participantion")
+  participantions     Participation[]      @relation("participantion")
   TeamMemberships     TeamMembership[]
   // ProjectAdmin        ProjectAdmin[]
   Projects            Project[]
@@ -143,7 +143,7 @@ model Project {
   tags            ProjectTag[]
   stakeholders    ProjectStakeholder[]
   invitations     Invitation[]
-  participantions Participantion[]
+  participantions Participation[]
   teams           Team[]
   manager         User                 @relation(fields: [managerId], references: [id])
 
@@ -207,25 +207,73 @@ model Image {
   @@map("images")
 }
 
+// model Invitation {
+//   id               String       @id @default(uuid())
+//   email            String
+//   projectId        String
+//   status           InviteStatus @default(PENDING)
+//   invitedUserName  String?
+//   message          String?      @db.Text
+//   invitedBy        String
+//   sentAt           DateTime     @default(now())
+//   createdAt        DateTime     @default(now())
+//   updatedAt        DateTime     @updatedAt
+//   participantionId String?
+
+//   // Relations
+//   project        Project         @relation(fields: [projectId], references: [id])
+//   inviter        User            @relation(fields: [invitedBy], references: [id])
+//   participantion Participantion? @relation(name: "invited_participation")
+
+//   @@unique([projectId, email])
+//   @@map("invitations")
+// }
+
+// model Invitation {
+//   id               String       @id @default(uuid())
+//   email            String
+//   projectId        String
+//   status           InviteStatus @default(PENDING)
+//   invitedUserName  String? // Optional user name of the invited participant
+//   message          String?      @db.Text // Optional message from the inviter
+//   invitedBy        String
+//   sentAt           DateTime? // Optional, to be set when the invitation is actually sent
+//   createdAt        DateTime     @default(now())
+//   updatedAt        DateTime     @updatedAt
+//   participantionId String? // Optional, to be set once the invitation is accepted
+
+//   // Relations
+//   project        Project        @relation(fields: [projectId], references: [id])
+//   inviter        User           @relation(fields: [invitedBy], references: [id])
+//   participantion Participation? @relation(name: "invited_participation") // Ensure consistency with the Participation model
+
+//   @@unique([projectId, email])
+//   @@map("invitations")
+// }
+
 model Invitation {
   id               String       @id @default(uuid())
   email            String
   projectId        String
   status           InviteStatus @default(PENDING)
+  invitedUserName  String?
+  message          String?      @db.Text
   invitedBy        String
+  sentAt           DateTime? // Optional
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-  participantionId String
+  participantionId String? // Ensure this is optional
 
   // Relations
-  project        Project         @relation(fields: [projectId], references: [id])
-  inviter        User            @relation(fields: [invitedBy], references: [id])
-  participantion Participantion? @relation(name: "invited_participation")
+  project        Project        @relation(fields: [projectId], references: [id])
+  inviter        User           @relation(fields: [invitedBy], references: [id])
+  participantion Participation? @relation(name: "invited_participation")
 
+  @@unique([projectId, email])
   @@map("invitations")
 }
 
-model Participantion {
+model Participation {
   id           String               @id @default(uuid())
   projectId    String
   userId       String
