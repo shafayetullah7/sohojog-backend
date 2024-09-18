@@ -21,6 +21,9 @@ import { ProjectsModule } from './api/manager/project/project.module';
 import { AuthModule } from './api/user-module/auth/auth.module';
 import { UserModule } from './api/user-module/user/user.module';
 import { InvitationModule } from './api/manager/invitation/invitation.module';
+import { LeadingRoleModule } from './api/role-access/leading-role/leading-role.module';
+import { ManagingRoleModule } from './api/role-access/managing-role/managing-role.module';
+import { ParticipatingRoleModule } from './api/role-access/participating-role/participating-role.module';
 
 @Module({
   imports: [
@@ -42,6 +45,9 @@ import { InvitationModule } from './api/manager/invitation/invitation.module';
     UserModule,
     ProjectsModule,
     InvitationModule,
+    LeadingRoleModule,
+    ManagingRoleModule,
+    ParticipatingRoleModule,
   ],
   controllers: [AppController],
   providers: [
