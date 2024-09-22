@@ -104,7 +104,6 @@ model User {
   projectStakeholder  ProjectStakeholder[]
   Invitation          Invitation[]
   participantions     Participation[]      @relation("participantion")
-  TeamMemberships     TeamMembership[]
   CreatedProjects     Project[]            @relation("project_creator")
 
   @@unique([googleId, id])
@@ -285,10 +284,11 @@ model Participation {
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
 
-  invitation Invitation?    @relation(name: "invited_participation", fields: [invitationId], references: [id])
-  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user       User           @relation("participantion", fields: [userId], references: [id])
-  adminRole  ProjectAdmin[]
+  invitation     Invitation?      @relation(name: "invited_participation", fields: [invitationId], references: [id])
+  project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user           User             @relation("participantion", fields: [userId], references: [id])
+  adminRole      ProjectAdmin[]
+  TeamMembership TeamMembership[]
 
   @@unique([projectId, userId])
   @@map("participantions")
@@ -324,7 +324,7 @@ model TeamResponsibility {
 
 model TeamMembership {
   id               String   @id @default(uuid())
-  userId           String
+  participationId  String
   teamId           String
   role             TeamRole @default(MEMBER)
   purpose          String?  @db.Text
@@ -332,9 +332,9 @@ model TeamMembership {
   joinedAt         DateTime @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [id])
-  team Team @relation(fields: [teamId], references: [id])
+  team          Team          @relation(fields: [teamId], references: [id])
+  participation Participation @relation(fields: [participationId], references: [id])
 
-  @@unique([userId, teamId])
+  @@unique([participationId, teamId])
   @@map("team_memberships")
 }
