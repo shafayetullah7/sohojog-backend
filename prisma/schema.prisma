@@ -285,10 +285,10 @@ model Participation {
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
 
-  invitation   Invitation?    @relation(name: "invited_participation", fields: [invitationId], references: [id])
-  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user         User           @relation("participantion", fields: [userId], references: [id])
-  adminRole ProjectAdmin[]
+  invitation Invitation?    @relation(name: "invited_participation", fields: [invitationId], references: [id])
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user       User           @relation("participantion", fields: [userId], references: [id])
+  adminRole  ProjectAdmin[]
 
   @@unique([projectId, userId])
   @@map("participantions")
@@ -306,6 +306,7 @@ model Team {
   memberShips        TeamMembership[]
   TeamResponsibility TeamResponsibility[]
 
+  @@unique([projectId, name])
   @@map("teams")
 }
 

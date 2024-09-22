@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTeamBodyDto } from './dto/create.team.dto';
 import { ProjectAdminRole } from '@prisma/client';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { UpdateTeamBodyDto } from './dto/update.team.dto';
+import { GetMyProjectTeamsQueryDto } from './dto/get.team.dto';
 
 @Injectable()
 export class TeamService {
@@ -13,7 +19,7 @@ export class TeamService {
   ) {}
 
   async createTeam(userId: string, payload: CreateTeamBodyDto) {
-    const { projectId, ...teamData } = payload;
+    const { projectId, responsibilities, ...teamData } = payload;
 
     // Check if the user is a Project Admin with a role of MANAGER for the specified project
     const project = await this.prisma.project.findFirst({
@@ -38,64 +44,179 @@ export class TeamService {
       throw new NotFoundException('Project not found');
     }
 
+    const existingTeam = await this.prisma.team.findUnique({
+      where: {
+        projectId_name: {
+          projectId,
+          name: payload.name,
+        },
+      },
+    });
+
+    if (existingTeam) {
+      throw new ConflictException(
+        `'${payload.name}' team already exists within the project.`,
+      );
+    }
+
     const newTeam = await this.prisma.team.create({
       data: {
         ...teamData,
         projectId: projectId,
+        TeamResponsibility: {
+          create: responsibilities?.length
+            ? responsibilities.map((responsibility) => ({
+                responsibility,
+              }))
+            : [],
+        },
       },
     });
 
-    // Optionally, you can add the creator as a team member or perform additional actions here
+    return newTeam;
+  }
 
-    return newTeam; // Return the newly created team
+  async getTeamsByManager(userId: string, query: GetMyProjectTeamsQueryDto) {
+    const teams = await this.prisma.team.findMany({
+      where: {
+        project: {
+          AND: [
+            { id: query.projectId },
+            {
+              participations: {
+                some: {
+                  userId,
+                  adminRole: { some: { role: ProjectAdminRole.MANAGER } },
+                },
+              },
+            },
+          ],
+        },
+        name: {
+          contains: query.name,
+          mode: 'insensitive',
+        },
+        status: query.status,
+        purpose: {
+          contains: query.purpose,
+          mode: 'insensitive',
+        },
+        projectId: query.projectId,
+      },
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+      orderBy: {
+        [query.sortBy]: query.sortOrder,
+      },
+    });
+
+    return teams;
   }
 
   async updateTeam(userId: string, teamId: string, payload: UpdateTeamBodyDto) {
-    const { ...teamData } = payload;
+    const result = await this.prisma.$transaction(async (tx) => {
+      const { addResponsibilities, removeResponsibilities, ...rest } = payload;
 
-    const team = await this.prisma.team.findUnique({
-      where: { id: teamId },
-      include: { project: true },
-    });
-
-    if (!team) {
-      throw new NotFoundException('Team not found');
-    }
-
-    const { projectId } = team; // Extract the projectId from the team
-
-    // Step 2: Check if the user is a Project Admin with a MANAGER role for the project the team belongs to
-    const project = await this.prisma.project.findFirst({
-      where: {
-        AND: [
-          { id: projectId },
-          {
+      // Find the team, ensure the user is an admin or has permission
+      const team = await tx.team.findFirst({
+        where: {
+          id: teamId,
+          project: {
             participations: {
               some: {
                 userId: userId,
                 adminRole: {
-                  some: { role: ProjectAdminRole.MANAGER, active: true },
+                  some: { role: 'MANAGER', active: true }, // Example check for admin role
                 },
               },
             },
           },
-        ],
-      },
+        },
+        include: {
+          TeamResponsibility: {
+            select: {
+              id: true,
+              responsibility: true,
+            },
+          },
+        },
+      });
+
+      if (!team) {
+        throw new NotFoundException('Team not found.');
+      }
+
+      // Handle removing responsibilities
+      if (removeResponsibilities?.length) {
+        removeResponsibilities.forEach((responsibilityId) => {
+          if (
+            !team.TeamResponsibility.find(
+              (resp) => resp.id === responsibilityId,
+            )
+          ) {
+            throw new NotFoundException(
+              'Some responsibilities you are trying to remove are not found on the team.',
+            );
+          }
+        });
+      }
+
+      // Handle adding responsibilities
+      if (addResponsibilities?.length) {
+        const remainingResponsibilities = [...team.TeamResponsibility].filter(
+          (resp) => !removeResponsibilities?.includes(resp.id),
+        );
+
+        addResponsibilities.forEach((responsibilityName) => {
+          if (
+            remainingResponsibilities.find(
+              (resp) =>
+                resp.responsibility.toLowerCase() ===
+                responsibilityName.toLowerCase(),
+            )
+          ) {
+            throw new ConflictException(
+              'Some responsibilities you are adding already exist on the team.',
+            );
+          }
+        });
+
+        if (
+          remainingResponsibilities.length + addResponsibilities.length >
+          10
+        ) {
+          throw new BadRequestException('Too many responsibilities');
+        }
+      }
+
+      // Perform responsibility deletions
+      if (removeResponsibilities?.length) {
+        await tx.teamResponsibility.deleteMany({
+          where: { id: { in: removeResponsibilities } },
+        });
+      }
+
+      // Update the team with new responsibilities
+      const updatedTeam = await tx.team.update({
+        where: { id: teamId },
+        data: {
+          ...rest,
+          TeamResponsibility: {
+            create:
+              addResponsibilities?.map((responsibility) => ({
+                responsibility,
+              })) || [],
+          },
+        },
+        include: { TeamResponsibility: true },
+      });
+
+      return updatedTeam;
     });
 
-    // Step 3: If the user is not authorized, throw an error
-    if (!project) {
-      throw new NotFoundException('User is not authorized to update this team');
-    }
-
-    // Step 4: Update the team with the new data
-    const updatedTeam = await this.prisma.team.update({
-      where: { id: teamId },
-      data: {
-        ...teamData, // Spread the updated team data (e.g., name, purpose, status)
-      },
-    });
-
-    return updatedTeam; // Return the updated team
+    return this.response
+      .setSuccess(true)
+      .setMessage('Team updated successfully')
+      .setData(result);
   }
 }

@@ -44,7 +44,7 @@ export class InvitationController {
     body: GetInvitationsQueryDto,
     @User() user: JwtUser,
   ) {
-    const result = await this.invitationService.getInvitations(
+    const result = await this.invitationService.getInvitationsByManager(
       user.userId,
       body,
     );

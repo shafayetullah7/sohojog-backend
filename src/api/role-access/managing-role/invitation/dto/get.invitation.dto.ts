@@ -47,13 +47,13 @@ export const getInvitationsQuerySchema = z
       .date()
       .transform((dateString) => dayjs(dateString).toDate())
       .optional(),
-    page: z.number().int().positive().optional(),
+    page: z.number().int().positive().default(1),
     limit: z
       .number()
       .int()
       .positive()
       .max(100, 'Limit cannot be more than 100')
-      .optional(),
+      .default(15),
   })
   .strict();
 

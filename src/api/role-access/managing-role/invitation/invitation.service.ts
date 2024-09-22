@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { CreateInvitationBodyDto } from './dto/create.invitation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -32,7 +36,9 @@ export class InvitationService {
       });
 
       if (!projectAdmin) {
-        throw new ForbiddenException('You do not have permission to send invitations for this project.');
+        throw new ForbiddenException(
+          'You do not have permission to send invitations for this project.',
+        );
       }
 
       // Upsert the invitation
@@ -80,13 +86,23 @@ export class InvitationService {
       .setData(result);
   }
 
-  async getInvitations(userId: string, query: GetInvitationsQueryDto) {
+  async getInvitationsByManager(userId: string, query: GetInvitationsQueryDto) {
     const { date, month, year, beforeDate, afterDate, page, limit, ...rest } =
       query;
 
     const prismaQuery: Prisma.InvitationWhereInput = {
       AND: [
         rest,
+        {
+          project: {
+            participations: {
+              some: {
+                userId,
+                adminRole: { some: { role: ProjectAdminRole.MANAGER } },
+              },
+            },
+          },
+        },
         date
           ? {
               sentAt: {
@@ -118,8 +134,8 @@ export class InvitationService {
 
     const invitations = await this.prisma.invitation.findMany({
       where: prismaQuery,
-      skip: query.page ? (query.page - 1) * (query.limit || 15) : 0,
-      take: query.limit || 15,
+      skip: (page - 1) * (limit || 15),
+      take: limit || 15,
     });
 
     return this.response
