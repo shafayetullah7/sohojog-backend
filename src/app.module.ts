@@ -17,10 +17,8 @@ import { RequestStartTimeMiddleware } from './global/middleware/startTimeStampMi
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { OtpModule } from './shared/modules/otp/otp.module';
 import { EmailVerificationModule } from './shared/modules/email-verification/email-verification.module';
-import { ProjectsModule } from './api/manager/project/project.module';
 import { AuthModule } from './api/user-module/auth/auth.module';
 import { UserModule } from './api/user-module/user/user.module';
-import { InvitationModule } from './api/manager/invitation/invitation.module';
 import { LeadingRoleModule } from './api/role-access/leading-role/leading-role.module';
 import { ManagingRoleModule } from './api/role-access/managing-role/managing-role.module';
 import { ParticipatingRoleModule } from './api/role-access/participating-role/participating-role.module';
@@ -40,11 +38,8 @@ import { ParticipatingRoleModule } from './api/role-access/participating-role/pa
     ]),
     OtpModule,
     EmailVerificationModule,
-    ProjectsModule,
     AuthModule,
     UserModule,
-    ProjectsModule,
-    InvitationModule,
     LeadingRoleModule,
     ManagingRoleModule,
     ParticipatingRoleModule,

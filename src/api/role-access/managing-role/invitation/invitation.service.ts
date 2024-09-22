@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { CreateInvitationBodyDto } from './dto/create.invitation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EmailService } from 'src/shared/modules/email/email.service';
 import { GetInvitationsQueryDto } from './dto/get.invitation.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProjectAdminRole } from '@prisma/client';
 import dayjs from 'dayjs';
 
 @Injectable()
@@ -19,54 +19,64 @@ export class InvitationService {
     const result = await this.prisma.$transaction(async (tx) => {
       const { projectId, email, sendEmail } = payload;
 
-      const project = await tx.project.findUnique({
-        where: { id: projectId, managerId: userId },
-        include: { manager: { select: { name: true, id: true } } },
+      const projectAdmin = await tx.projectAdmin.findFirst({
+        where: {
+          participation: {
+            userId, // Check if the user is part of the project
+            projectId, // Check for the specific project
+          },
+          role: ProjectAdminRole.MANAGER, // Role can be adjusted as per your requirement
+          active: true, // Check if the admin is active
+        },
+        include: { participation: { select: { userId: true } } }, // Include participation for validation
       });
 
-      if (!project) {
-        throw new NotFoundException('Project not found');
+      if (!projectAdmin) {
+        throw new ForbiddenException('You do not have permission to send invitations for this project.');
       }
 
-      const result = await tx.invitation.upsert({
+      // Upsert the invitation
+      const invitation = await tx.invitation.upsert({
         where: {
           projectId_email: {
-            projectId: project.id,
+            projectId: projectId,
             email,
           },
         },
         create: {
           email,
           message: payload.message,
-          invitedBy: project.manager.id,
-          projectId: project.id,
+          invitedBy: projectAdmin.participation.userId,
+          projectId: projectId,
           invitedUserName: payload.invitedUserName,
           sentAt: new Date(),
         },
         update: {
           message: payload.message,
-          invitedBy: project.manager.id,
+          invitedBy: projectAdmin.participation.userId,
           invitedUserName: payload.invitedUserName,
           sentAt: new Date(),
         },
       });
 
+      // Send the email if required
       if (sendEmail) {
         await this.emailService.sendProjectInvitationEmail({
           email,
-          invitationLink: 'abc.com',
-          inviterName: project.manager.name,
-          projectName: project.title,
+          invitationLink: 'abc.com', // Replace with real link generation logic
+          inviterName: 'Admin', // Replace with the inviter's name
+          projectName: 'Project Title', // Replace with the project name
           invitedUserName: payload.invitedUserName,
           optionalMessage: payload.message,
         });
       }
 
-      return result;
+      return invitation;
     });
+
     return this.response
       .setSuccess(true)
-      .setMessage('Invitation sent')
+      .setMessage('Invitation sent successfully')
       .setData(result);
   }
 

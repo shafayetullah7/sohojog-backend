@@ -9,6 +9,7 @@ import { ResponseBuilder } from 'src/shared/modules/response-builder/response.bu
 import { CreateProjectBodyDto } from './dto/create.project.dto';
 import { GetMyProjectsQueryDto } from './dto/get.my.projets.dto';
 import { UpdateProjectBodyDto } from './dto/update.project.dto';
+import { ProjectAdminRole } from '@prisma/client';
 
 @Injectable()
 export class ProjectService {
@@ -17,44 +18,60 @@ export class ProjectService {
     private readonly prisma: PrismaService,
   ) {}
   async createProject(userId: string, payload: CreateProjectBodyDto) {
-    const { tags, ...rest } = payload;
-    const existingProject = await this.prisma.project.findUnique({
-      where: { managerId_title: { managerId: userId, title: payload.title } },
-    });
-    if (existingProject) {
-      throw new ConflictException(
-        'Already created a project with similar title',
-      );
-    }
+    const result = await this.prisma.$transaction(async (tx) => {
+      const { tags, ...rest } = payload;
+      const existingProject = await tx.project.findUnique({
+        where: { creatorId_title: { creatorId: userId, title: payload.title } },
+      });
+      if (existingProject) {
+        throw new ConflictException(
+          'Already created a project with similar title',
+        );
+      }
 
-    // console.log();
+      // console.log();
 
-    const newProject = await this.prisma.project.create({
-      data: {
-        ...rest,
-        managerId: userId,
-        tags: {
-          create: tags.map((tag) => ({ tag })),
+      const newProject = await tx.project.create({
+        data: {
+          ...rest,
+          creatorId: userId,
+          tags: {
+            create: tags.map((tag) => ({ tag })),
+          },
         },
-      },
-      include: {
-        tags: true, // Include the tags in the response if you want to get them back
-      },
+        include: {
+          tags: true,
+        },
+      });
+
+      const participant = await tx.participation.create({
+        data: {
+          projectId: newProject.id,
+          userId,
+        },
+      });
+
+      const manager = await tx.projectAdmin.create({
+        data: {
+          participationId: participant.id,
+          role: ProjectAdminRole.MANAGER,
+        },
+      });
+
+      console.log(newProject);
+      this.response
+        .setSuccess(true)
+        .setMessage('New project created.')
+        .setData(newProject);
+
+      return this.response;
     });
-
-    console.log(newProject);
-    this.response
-      .setSuccess(true)
-      .setMessage('New project created.')
-      .setData(newProject);
-
-    return this.response;
   }
 
   async getMyProjects(userId: string, query: GetMyProjectsQueryDto) {
     // const { searchKey, tagId, ...restQuery } = query;
     const projects = await this.prisma.project.findMany({
-      where: { ...query, managerId: userId },
+      where: { ...query, creatorId: userId },
     });
     return this.response
       .setSuccess(true)
@@ -70,7 +87,7 @@ export class ProjectService {
     const result = await this.prisma.$transaction(async (tx) => {
       const { addTags, removeTags, ...rest } = payload;
       const project = await tx.project.findUnique({
-        where: { id: projectId, managerId: userId },
+        where: { id: projectId, creatorId: userId },
         include: {
           tags: {
             select: {

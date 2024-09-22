@@ -81,9 +81,9 @@ enum ParticipantionRole {
   MEMBER
 }
 
-// enum ProjectAdminRole {
-//   MANAGER
-// }
+enum ProjectAdminRole {
+  MANAGER
+}
 
 model User {
   id                String   @id @default(uuid())
@@ -105,8 +105,7 @@ model User {
   Invitation          Invitation[]
   participantions     Participation[]      @relation("participantion")
   TeamMemberships     TeamMembership[]
-  // ProjectAdmin        ProjectAdmin[]
-  Projects            Project[]
+  CreatedProjects     Project[]            @relation("project_creator")
 
   @@unique([googleId, id])
   @@map("users")
@@ -133,38 +132,38 @@ model Project {
   status      ProjectStatus     @default(PLANNING)
   startDate   DateTime
   endDate     DateTime?
-  managerId   String
+  creatorId   String
   visibility  ProjectVisibility @default(PRIVATE)
   priority    ProjectPriority   @default(MEDIUM)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tags            ProjectTag[]
-  stakeholders    ProjectStakeholder[]
-  invitations     Invitation[]
-  participantions Participation[]
-  teams           Team[]
-  manager         User                 @relation(fields: [managerId], references: [id])
+  tags           ProjectTag[]
+  stakeholders   ProjectStakeholder[]
+  invitations    Invitation[]
+  participations Participation[]
+  teams          Team[]
+  creator        User                 @relation(name: "project_creator", fields: [creatorId], references: [id])
+  userId         String?
 
-  @@unique([managerId, title])
+  @@unique([creatorId, title])
   @@map("projects")
 }
 
-// model ProjectAdmin {
-//   id        String           @id @default(uuid())
-//   userId    String
-//   projectId String
-//   role      ProjectAdminRole
-//   active    Boolean          @default(true)
-//   createdAt DateTime         @default(now())
-//   updatedAt DateTime         @updatedAt
+model ProjectAdmin {
+  id              String           @id @default(uuid())
+  participationId String
+  role            ProjectAdminRole
+  active          Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-//   admin User @relation(fields: [userId], references: [id])
+  participation Participation @relation(fields: [participationId], references: [id])
 
-//   @@unique([userId, projectId, role])
-//   @@map("project_admins")
-// }
+  @@unique([participationId, role])
+  @@map("project_admins")
+}
 
 model ProjectTag {
   id        String   @id @default(uuid())
@@ -281,14 +280,15 @@ model Participation {
   userId       String
   status       ParticipantionStatus @default(PENDING)
   role         ParticipantionRole   @default(MEMBER)
-  invitationId String               @unique
+  invitationId String?              @unique
   joinedAt     DateTime?
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
 
-  invitation Invitation @relation(name: "invited_participation", fields: [invitationId], references: [id])
-  project    Project    @relation(fields: [projectId], references: [id])
-  user       User       @relation("participantion", fields: [userId], references: [id])
+  invitation   Invitation?    @relation(name: "invited_participation", fields: [invitationId], references: [id])
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user         User           @relation("participantion", fields: [userId], references: [id])
+  adminRole ProjectAdmin[]
 
   @@unique([projectId, userId])
   @@map("participantions")
