@@ -32,7 +32,7 @@ import {
   updateProjectParamSchema,
 } from './dto/update.project.dto';
 
-@Controller('projects')
+@Controller('manager/projects')
 export class ProjectController {
   constructor(private readonly projectsService: ProjectService) {}
 

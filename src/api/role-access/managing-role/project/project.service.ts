@@ -19,64 +19,91 @@ export class ProjectService {
   ) {}
   async createProject(userId: string, payload: CreateProjectBodyDto) {
     const result = await this.prisma.$transaction(async (tx) => {
-      const { tags, ...rest } = payload;
+      // Check if a project with the same title exists for this creator
       const existingProject = await tx.project.findUnique({
         where: { creatorId_title: { creatorId: userId, title: payload.title } },
       });
+
+      console.log('********', userId);
+
+      // Throw an error if a project with the same title exists
       if (existingProject) {
         throw new ConflictException(
           'Already created a project with similar title',
         );
       }
 
-      // console.log();
-
+      // Create the new project with an array of tags
       const newProject = await tx.project.create({
         data: {
-          ...rest,
+          ...payload,
           creatorId: userId,
-          tags: {
-            create: tags.map((tag) => ({ tag })),
+          participations: {
+            create: {
+              userId,
+              joinedAt: new Date(),
+              adminRole: {
+                create: {
+                  role: ProjectAdminRole.MANAGER,
+                },
+              },
+            },
           },
         },
         include: {
-          tags: true,
+          participations: true, // Include participations if needed
         },
       });
 
-      const participant = await tx.participation.create({
-        data: {
-          projectId: newProject.id,
-          userId,
-        },
-      });
+      // Add the creator as a participant in the project
+      // const participant = await tx.participation.create({
+      //   data: {
+      //     projectId: newProject.id,
+      //     userId,
+      //   },
+      // });
 
-      const manager = await tx.projectAdmin.create({
-        data: {
-          participationId: participant.id,
-          role: ProjectAdminRole.MANAGER,
-        },
-      });
+      // // Assign the creator as the manager of the project
+      // const manager = await tx.projectAdmin.create({
+      //   data: {
+      //     participationId: participant.id,
+      //     role: ProjectAdminRole.MANAGER,
+      //   },
+      // });
 
-      console.log(newProject);
-      this.response
-        .setSuccess(true)
-        .setMessage('New project created.')
-        .setData(newProject);
+      // Logging the new project for debugging
+      // console.log(newProject);
 
-      return this.response;
+      // Set the response object with success status and project data
+
+      return newProject;
     });
+    return this.response
+      .setSuccess(true)
+      .setMessage('New project created.')
+      .setData({ project: result });
   }
 
   async getMyProjects(userId: string, query: GetMyProjectsQueryDto) {
     // const { searchKey, tagId, ...restQuery } = query;
     const projects = await this.prisma.project.findMany({
       where: { ...query, creatorId: userId },
+      include: {
+        _count: {
+          select: {
+            participations: true,
+            stakeholders: true,
+            Task: true,
+            invitations: true,
+            teams: true,
+          },
+        },
+      },
     });
     return this.response
       .setSuccess(true)
       .setMessage('Projects retrieved.')
-      .setData(projects);
+      .setData({ projects });
   }
 
   async updateProject(
@@ -85,67 +112,19 @@ export class ProjectService {
     payload: UpdateProjectBodyDto,
   ) {
     const result = await this.prisma.$transaction(async (tx) => {
-      const { addTags, removeTags, ...rest } = payload;
       const project = await tx.project.findUnique({
         where: { id: projectId, creatorId: userId },
-        include: {
-          tags: {
-            select: {
-              id: true,
-              tag: true,
-            },
-          },
-        },
       });
 
       if (!project) {
         throw new NotFoundException('Project not found.');
       }
 
-      if (removeTags?.length) {
-        removeTags.forEach((tagId) => {
-          if (!project.tags.find((tag) => tag.id === tagId)) {
-            throw new NotFoundException(
-              'Some tags you are trying to remove are not found on the project.',
-            );
-          }
-        });
-      }
-
-      if (addTags?.length) {
-        const remainingTags = [...project.tags].filter(
-          (tag) => !removeTags?.includes(tag.id),
-        );
-
-        addTags.forEach((tagStr) => {
-          if (
-            remainingTags.find(
-              (tag) => tag.tag.toLowerCase() === tagStr.toLowerCase(),
-            )
-          ) {
-            throw new ConflictException(
-              'Some tags you’re adding already exist.',
-            );
-          }
-        });
-
-        if (remainingTags.length + addTags.length > 10) {
-          throw new BadRequestException('Too many tags');
-        }
-      }
-
-      if (removeTags?.length) {
-        const deleteResult = await tx.projectTag.deleteMany({
-          where: { id: { in: removeTags } },
-        });
-      }
       const result = await tx.project.update({
         where: { id: projectId },
         data: {
-          ...rest,
-          tags: { create: addTags?.map((tag) => ({ tag })) || [] },
+          ...payload,
         },
-        include: { tags: true },
       });
 
       return result;

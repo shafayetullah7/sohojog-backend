@@ -51,6 +51,7 @@ enum InviteStatus {
   PENDING
   ACCEPTED
   DECLINED
+  CANCELLED
 }
 
 enum TeamStatus {
@@ -71,9 +72,8 @@ enum TeamRole {
 }
 
 enum ParticipantionStatus {
-  PENDING
   ACTIVE
-  DECLINED
+  INACTIVE
   REMOVED
 }
 
@@ -105,6 +105,7 @@ model User {
   Invitation          Invitation[]
   participantions     Participation[]      @relation("participantion")
   CreatedProjects     Project[]            @relation("project_creator")
+  // TaskAssignment      TaskAssignment[]
 
   @@unique([googleId, id])
   @@map("users")
@@ -138,13 +139,14 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tags           ProjectTag[]
+  tags           String[]
   stakeholders   ProjectStakeholder[]
   invitations    Invitation[]
   participations Participation[]
   teams          Team[]
   creator        User                 @relation(name: "project_creator", fields: [creatorId], references: [id])
-  userId         String?
+  Wallet         Wallet[]
+  Task           Task[]
 
   @@unique([creatorId, title])
   @@map("projects")
@@ -158,22 +160,11 @@ model ProjectAdmin {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  participation Participation @relation(fields: [participationId], references: [id])
+  participation     Participation       @relation(fields: [participationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  WalletTransaction WalletTransaction[]
 
   @@unique([participationId, role])
   @@map("project_admins")
-}
-
-model ProjectTag {
-  id        String   @id @default(uuid())
-  projectId String
-  tag       String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@unique([projectId, tag])
-  @@map("project_tags")
 }
 
 model ProjectStakeholder {
@@ -257,12 +248,12 @@ model Invitation {
   invitedUserName  String?
   message          String?      @db.Text
   invitedBy        String
-  sentAt           DateTime? // Optional
+  sentAt           DateTime?
   actionedAt       DateTime?
   seen             Boolean      @default(false)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-  participantionId String? // Ensure this is optional
+  participantionId String?
 
   // Relations
   project        Project        @relation(fields: [projectId], references: [id])
@@ -277,7 +268,7 @@ model Participation {
   id           String               @id @default(uuid())
   projectId    String
   userId       String
-  status       ParticipantionStatus @default(PENDING)
+  status       ParticipantionStatus @default(ACTIVE)
   role         ParticipantionRole   @default(MEMBER)
   invitationId String?              @unique
   joinedAt     DateTime?
@@ -295,31 +286,19 @@ model Participation {
 }
 
 model Team {
-  id                 String               @id @default(uuid())
-  name               String               @db.VarChar(255)
-  purpose            String?              @db.Text
-  projectId          String
-  project            Project              @relation(fields: [projectId], references: [id])
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  status             TeamStatus           @default(ACTIVE)
-  memberShips        TeamMembership[]
-  TeamResponsibility TeamResponsibility[]
+  id               String           @id @default(uuid())
+  name             String           @db.VarChar(255)
+  purpose          String?          @db.Text
+  projectId        String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  status           TeamStatus       @default(ACTIVE)
+  responsibilities String[]
+  project          Project          @relation(fields: [projectId], references: [id])
+  memberShips      TeamMembership[]
 
   @@unique([projectId, name])
   @@map("teams")
-}
-
-model TeamResponsibility {
-  id             String   @id @default(uuid())
-  teamId         String
-  responsibility String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  team           Team     @relation(fields: [teamId], references: [id])
-
-  @@unique([teamId, responsibility])
-  @@map("team_responsibilities")
 }
 
 model TeamMembership {
@@ -337,4 +316,139 @@ model TeamMembership {
 
   @@unique([participationId, teamId])
   @@map("team_memberships")
+}
+
+model Wallet {
+  id        String       @id @default(uuid())
+  balance   Float        @default(0.0)
+  currency  Currency     @default(USD)
+  status    WalletStatus @default(ACTIVE)
+  projectId String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id])
+
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+enum WalletStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum Currency {
+  USD // United States Dollar
+  EUR // Euro
+  GBP // British Pound
+  JPY // Japanese Yen
+  AUD // Australian Dollar
+  CAD // Canadian Dollar
+  INR // Indian Rupee
+  CNY // Chinese Yuan
+  CHF // Swiss Franc
+  NZD // New Zealand Dollar
+  BDT //Bangladesh TK
+}
+
+model WalletTransaction {
+  id              String          @id @default(uuid())
+  walletId        String
+  amount          Float
+  transactionType TransactionType
+  description     String?
+  transactionById String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  wallet        Wallet       @relation(fields: [walletId], references: [id])
+  transactionBy ProjectAdmin @relation(fields: [transactionById], references: [id])
+
+  @@map("wallet_transactions")
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+model Task {
+  id           String       @id @default(uuid())
+  title        String       @db.VarChar(255)
+  description  String?      @db.Text
+  status       TaskStatus   @default(TODO)
+  priority     TaskPriority @default(MEDIUM)
+  dueDate      DateTime?
+  assignedToId String?
+  projectId    String
+  // createdById    String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  // createdBy      ProjectAdmin            @relation("task_creator", fields: [createdById], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // TaskAssignment TaskAssignment[]
+
+  @@unique([projectId, title])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  ARCHIVED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// model TaskAssignment {
+//   id         String   @id @default(uuid())
+//   taskId     String
+//   userId     String
+//   assignedAt DateTime @default(now())
+//   assignedBy String
+
+//   // Relations
+//   task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+//   user     User @relation(fields: [userId], references: [id])
+//   assigner User @relation("assigned_by", fields: [assignedBy], references: [id])
+
+//   @@unique([taskId, userId])
+//   @@map("task_assignments")
+// }
+
+// model TaskSubmission {
+//   id            String           @id @default(uuid())
+//   taskId        String
+//   userId        String
+//   submittedAt   DateTime         @default(now())
+//   status        SubmissionStatus
+//   comment       String? // Optional: Comments about the submission
+//   submissionUrl String? // Optional: URL to the submission (if a file or link)
+
+//   // Relations
+//   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+//   user User @relation(fields: [userId], references: [id])
+
+//   @@unique([taskId, userId])
+//   @@map("task_submissions")
+// }
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
 }

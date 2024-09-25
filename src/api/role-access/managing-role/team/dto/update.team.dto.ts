@@ -16,7 +16,7 @@ export const updateTeamBodySchema = z
       .max(5000, "Purpose can't exceed 5000 characters")
       .nullable(),
     status: z.nativeEnum(TeamStatus),
-    addResponsibilities: z
+    responsibilities: z
       .array(z.string().trim())
       .max(10, 'There can only be 10 or less responsibilities.')
       .refine(
@@ -24,15 +24,8 @@ export const updateTeamBodySchema = z
           new Set(arr.map((str) => str.toLowerCase())).size === arr.length,
         { message: 'Responsibilities must be unique.' },
       ),
-    removeResponsibilities: z
-      .array(z.string().uuid('Invalid responsibility id.'))
-      .max(10, 'There can only be 10 or less responsibilities.')
-      .refine((arr) => new Set(arr).size === arr.length, {
-        message: 'Responsibilities must be unique.',
-      }),
   })
   .partial();
 
 export type UpdateTeamBodyDto = z.infer<typeof updateTeamBodySchema>;
 export type UpdateTeamParamDto = z.infer<typeof updateTeamParamSchema>;
-

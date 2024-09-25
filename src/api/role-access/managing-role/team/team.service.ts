@@ -19,7 +19,7 @@ export class TeamService {
   ) {}
 
   async createTeam(userId: string, payload: CreateTeamBodyDto) {
-    const { projectId, responsibilities, ...teamData } = payload;
+    const { projectId, ...teamData } = payload;
 
     // Check if the user is a Project Admin with a role of MANAGER for the specified project
     const project = await this.prisma.project.findFirst({
@@ -63,13 +63,6 @@ export class TeamService {
       data: {
         ...teamData,
         projectId: projectId,
-        TeamResponsibility: {
-          create: responsibilities?.length
-            ? responsibilities.map((responsibility) => ({
-                responsibility,
-              }))
-            : [],
-        },
       },
     });
 
@@ -77,36 +70,27 @@ export class TeamService {
   }
 
   async getTeamsByManager(userId: string, query: GetMyProjectTeamsQueryDto) {
+    const { where, page, limit, sortBy, sortOrder } = query;
+
     const teams = await this.prisma.team.findMany({
       where: {
+        ...where,
         project: {
-          AND: [
-            { id: query.projectId },
-            {
-              participations: {
-                some: {
-                  userId,
-                  adminRole: { some: { role: ProjectAdminRole.MANAGER } },
-                },
-              },
+          participations: {
+            some: {
+              userId,
+              adminRole: { some: { role: ProjectAdminRole.MANAGER } },
             },
-          ],
+          },
+          // AND: [
+
+          // ],
         },
-        name: {
-          contains: query.name,
-          mode: 'insensitive',
-        },
-        status: query.status,
-        purpose: {
-          contains: query.purpose,
-          mode: 'insensitive',
-        },
-        projectId: query.projectId,
       },
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
+      skip: (page - 1) * limit,
+      take: limit,
       orderBy: {
-        [query.sortBy]: query.sortOrder,
+        [sortBy]: sortOrder,
       },
     });
 
@@ -115,9 +99,6 @@ export class TeamService {
 
   async updateTeam(userId: string, teamId: string, payload: UpdateTeamBodyDto) {
     const result = await this.prisma.$transaction(async (tx) => {
-      const { addResponsibilities, removeResponsibilities, ...rest } = payload;
-
-      // Find the team, ensure the user is an admin or has permission
       const team = await tx.team.findFirst({
         where: {
           id: teamId,
@@ -132,14 +113,6 @@ export class TeamService {
             },
           },
         },
-        include: {
-          TeamResponsibility: {
-            select: {
-              id: true,
-              responsibility: true,
-            },
-          },
-        },
       });
 
       if (!team) {
@@ -147,68 +120,13 @@ export class TeamService {
       }
 
       // Handle removing responsibilities
-      if (removeResponsibilities?.length) {
-        removeResponsibilities.forEach((responsibilityId) => {
-          if (
-            !team.TeamResponsibility.find(
-              (resp) => resp.id === responsibilityId,
-            )
-          ) {
-            throw new NotFoundException(
-              'Some responsibilities you are trying to remove are not found on the team.',
-            );
-          }
-        });
-      }
-
-      // Handle adding responsibilities
-      if (addResponsibilities?.length) {
-        const remainingResponsibilities = [...team.TeamResponsibility].filter(
-          (resp) => !removeResponsibilities?.includes(resp.id),
-        );
-
-        addResponsibilities.forEach((responsibilityName) => {
-          if (
-            remainingResponsibilities.find(
-              (resp) =>
-                resp.responsibility.toLowerCase() ===
-                responsibilityName.toLowerCase(),
-            )
-          ) {
-            throw new ConflictException(
-              'Some responsibilities you are adding already exist on the team.',
-            );
-          }
-        });
-
-        if (
-          remainingResponsibilities.length + addResponsibilities.length >
-          10
-        ) {
-          throw new BadRequestException('Too many responsibilities');
-        }
-      }
-
-      // Perform responsibility deletions
-      if (removeResponsibilities?.length) {
-        await tx.teamResponsibility.deleteMany({
-          where: { id: { in: removeResponsibilities } },
-        });
-      }
 
       // Update the team with new responsibilities
       const updatedTeam = await tx.team.update({
         where: { id: teamId },
         data: {
-          ...rest,
-          TeamResponsibility: {
-            create:
-              addResponsibilities?.map((responsibility) => ({
-                responsibility,
-              })) || [],
-          },
+          ...payload,
         },
-        include: { TeamResponsibility: true },
       });
 
       return updatedTeam;

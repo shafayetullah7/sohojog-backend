@@ -24,7 +24,7 @@ export const updateProjectBodySchema = z
     endDate: z.string().datetime('Invalid date'),
     visibility: z.nativeEnum(ProjectVisibility),
     priority: z.nativeEnum(ProjectPriority),
-    addTags: z
+    tags: z
       .array(z.string().trim())
       .max(10, 'There can only be 10 or less tags.')
       .refine(
@@ -32,12 +32,6 @@ export const updateProjectBodySchema = z
           new Set(arr.map((str) => str.toLowerCase())).size === arr.length,
         { message: 'Tags must be unique.' },
       ),
-    removeTags: z
-      .array(z.string().uuid('Invalid tag id.'))
-      .max(10, 'There can only be 10 or less tags.')
-      .refine((arr) => new Set(arr).size === arr.length, {
-        message: 'Tags must be unique.',
-      }),
   })
   .strict()
   .partial();

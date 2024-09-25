@@ -1,5 +1,4 @@
-export enum InviteStatus {
-  PENDING = 'PENDING',
+export enum InvitationResponseStatus {
   ACCEPTED = 'ACCEPTED',
   DECLINED = 'DECLINED',
 }

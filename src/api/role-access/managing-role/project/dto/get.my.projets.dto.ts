@@ -13,11 +13,11 @@ export const getMyProjectsQuerySchema = z
     status: z.nativeEnum(ProjectStatus),
     priority: z.nativeEnum(ProjectPriority),
     visibility: z.nativeEnum(ProjectVisibility),
-    tagId: z.string().uuid(),
+    tag: z.string(),
   })
   .partial()
   .transform((data) => {
-    const { searchTerm, tagId, ...rest } = data;
+    const { searchTerm, ...rest } = data;
 
     // Initialize where clause
     const whereClause: Prisma.ProjectWhereInput = { ...rest };
@@ -26,17 +26,12 @@ export const getMyProjectsQuerySchema = z
     if (searchTerm) {
       whereClause.OR = [
         { title: { contains: searchTerm, mode: 'insensitive' } },
+        { tags: { hasSome: [searchTerm] } },
         { description: { contains: searchTerm, mode: 'insensitive' } },
       ];
     }
-
-    // Handle tagId for relational filtering
-    if (tagId) {
-      whereClause.tags = {
-        some: {
-          id: tagId,
-        },
-      };
+    if (data.tag) {
+      whereClause.tags = { has: data.tag };
     }
 
     return whereClause;
