@@ -104,7 +104,7 @@ export class InvitationService {
         },
       });
 
-      if (!invitation) {
+      if (!invitation || invitation.email !== user.email) {
         throw new NotFoundException('Invitation not found.');
       }
 
@@ -114,7 +114,26 @@ export class InvitationService {
         );
       }
 
-      const updatedInvitation = await tx.invitation.update({where:{id:invitationId},data:payload})
+      const updatedInvitation = await tx.invitation.update({
+        where: { id: invitationId },
+        data: payload,
+      });
+
+      const participations = await tx.participation.create({
+        data: {
+          projectId: invitation.projectId,
+          userId,
+          invitationId: invitation.id,
+        },
+        include: {
+          invitation: true,
+        },
+      });
+      return participations;
     });
+    return this.response
+      .setSuccess(true)
+      .setMessage(`Invitation ${payload.status.toLowerCase}.`)
+      .setData(result);
   }
 }
