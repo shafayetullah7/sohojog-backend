@@ -62,13 +62,11 @@ enum TeamStatus {
 
 enum TeamRole {
   LEADER
-  MEMBER
-  GUEST
-  COORDINATOR
-  ADVISOR
-  REVIEWER
-  SUPPORT
-  COMMUNICATOR
+  // COORDINATOR
+  // ADVISOR
+  // REVIEWER
+  // SUPPORT
+  // COMMUNICATOR
 }
 
 enum ParticipantionStatus {
@@ -305,17 +303,30 @@ model TeamMembership {
   id               String   @id @default(uuid())
   participationId  String
   teamId           String
-  role             TeamRole @default(MEMBER)
   purpose          String?  @db.Text
   responsibilities String[]
   joinedAt         DateTime @default(now())
 
   // Relations
-  team          Team          @relation(fields: [teamId], references: [id])
-  participation Participation @relation(fields: [participationId], references: [id])
+  team           Team             @relation(fields: [teamId], references: [id])
+  participation  Participation    @relation(fields: [participationId], references: [id])
+  TeamMemberRole TeamMemberRole[]
 
   @@unique([participationId, teamId])
   @@map("team_memberships")
+}
+
+model TeamMemberRole {
+  id           String   @id @default(uuid())
+  membershipId String
+  role         TeamRole
+  active       Boolean  @default(true)
+
+  // Relations
+  membership TeamMembership @relation(fields: [membershipId], references: [id])
+
+  @@unique([membershipId, role])
+  @@map("team_member_roles")
 }
 
 model Wallet {

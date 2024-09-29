@@ -10,6 +10,8 @@ import { ProjectAdminRole } from '@prisma/client';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { UpdateTeamBodyDto } from './dto/update.team.dto';
 import { GetMyProjectTeamsQueryDto } from './dto/get.team.dto';
+import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.helper';
+import { managerTeamHelper } from 'src/_helpers/access-helpers/manager-access/manager.team.helper';
 
 @Injectable()
 export class TeamService {
@@ -22,23 +24,35 @@ export class TeamService {
     const { projectId, ...teamData } = payload;
 
     // Check if the user is a Project Admin with a role of MANAGER for the specified project
-    const project = await this.prisma.project.findFirst({
-      where: {
-        AND: [
-          { id: projectId },
-          {
-            participations: {
-              some: {
-                userId: userId,
-                adminRole: {
-                  some: { role: ProjectAdminRole.MANAGER, active: true },
-                },
-              },
-            },
-          },
-        ],
-      },
-    });
+    // const project = await this.prisma.project.findFirst({
+    //   where: {
+    //     AND: [
+    //       { id: projectId },
+    //       {
+    //         participations: {
+    //           some: {
+    //             userId: userId,
+    //             adminRole: {
+    //               some: { role: ProjectAdminRole.MANAGER, active: true },
+    //             },
+    //           },
+    //         },
+    //       },
+    //     ],
+    //   },
+    // });
+
+    const managerProject = await managerProjectHelper.getManagerProject(
+      this.prisma,
+      userId,
+      projectId,
+    );
+
+    if (!managerProject) {
+      throw new NotFoundException('Project not found.');
+    }
+
+    const { project } = managerProject;
 
     if (!project) {
       throw new NotFoundException('Project not found');
@@ -99,27 +113,14 @@ export class TeamService {
 
   async updateTeam(userId: string, teamId: string, payload: UpdateTeamBodyDto) {
     const result = await this.prisma.$transaction(async (tx) => {
-      const team = await tx.team.findFirst({
-        where: {
-          id: teamId,
-          project: {
-            participations: {
-              some: {
-                userId: userId,
-                adminRole: {
-                  some: { role: 'MANAGER', active: true }, // Example check for admin role
-                },
-              },
-            },
-          },
-        },
-      });
-
-      if (!team) {
+      const managerTeam = managerTeamHelper.getManagerTeam(
+        this.prisma,
+        userId,
+        teamId,
+      );
+      if (!managerTeam) {
         throw new NotFoundException('Team not found.');
       }
-
-      // Handle removing responsibilities
 
       // Update the team with new responsibilities
       const updatedTeam = await tx.team.update({

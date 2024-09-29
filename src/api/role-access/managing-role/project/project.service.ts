@@ -17,6 +17,7 @@ export class ProjectService {
     private readonly response: ResponseBuilder<any>,
     private readonly prisma: PrismaService,
   ) {}
+
   async createProject(userId: string, payload: CreateProjectBodyDto) {
     const result = await this.prisma.$transaction(async (tx) => {
       // Check if a project with the same title exists for this creator
