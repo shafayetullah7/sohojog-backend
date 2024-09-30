@@ -6,11 +6,18 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTeamMembershipDto } from './dto/create.team.membership.dto';
 import { managerTeamHelper } from 'src/_helpers/access-helpers/manager-access/manager.team.helper';
-import { AddRoleToMemberDto } from './dto/add.member.role';
+import { AddRoleToMemberDto } from './dto/add.member.role.dto';
+import { managerTeamMembershipHelpers } from 'src/_helpers/access-helpers/manager-access/manager.membership.helper';
+import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { TeamMembershipQueryDto } from './dto/get.membership.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TeamMembershipService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly response: ResponseBuilder<any>,
+  ) {}
 
   async createTeamMembership(
     userId: string,
@@ -55,6 +62,7 @@ export class TeamMembershipService {
     const newMembership = await this.prisma.teamMembership.create({
       data: {
         ...payload,
+        joinedAt: new Date(),
       },
       include: {
         team: true,
@@ -62,15 +70,22 @@ export class TeamMembershipService {
       },
     });
 
-    return newMembership;
+    // return newMembership;
+    return this.response
+      .setSuccess(true)
+      .setMessage('New membership created')
+      .setData({ membership: newMembership });
   }
 
   async addRoleToMember(userId: string, payload: AddRoleToMemberDto) {
-    const membership = await this.prisma.teamMembership.findUnique({
-      where: { id: payload.membershipId },
-    });
+    const managedMembership =
+      await managerTeamMembershipHelpers.getManagerMembership(
+        this.prisma,
+        userId,
+        payload.membershipId,
+      );
 
-    if (!membership) {
+    if (!managedMembership) {
       throw new NotFoundException('Membership not found.');
     }
 
@@ -94,8 +109,23 @@ export class TeamMembershipService {
         membershipId: payload.membershipId,
         role: payload.role,
       },
+      include: {
+        membership: true,
+      },
     });
 
-    return newRole;
+    const { membership, ...restRole } = newRole;
+    const result = { newRole };
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Team role assigned')
+      .setData({ role: newRole });
+  }
+
+  async getMemberships(userId: string, query: TeamMembershipQueryDto) {
+    const memberships = await this.prisma.teamMembership.findMany({
+      where: { ...query?.where, },
+    });
   }
 }

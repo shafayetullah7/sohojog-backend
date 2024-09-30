@@ -88,4 +88,4 @@ const getManagerMembership = async (
   };
 };
 
-export const managerTeamMembership = { getManagerMembership };
+export const managerTeamMembershipHelpers = { getManagerMembership };
