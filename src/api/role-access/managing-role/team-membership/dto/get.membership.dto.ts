@@ -18,51 +18,6 @@ export const teamMembershipQuerySchema = z
     }),
   })
   .partial()
-  .strict()
-  .transform((data) => {
-    const whereClause: Prisma.TeamMembershipWhereInput = {};
-
-    if (data.teamId) {
-      whereClause.teamId = data.teamId;
-    }
-
-    if (data.participationId) {
-      whereClause.participationId = data.participationId;
-    }
-
-    if (data.projectId) {
-      whereClause.participation = { projectId: data.projectId };
-    }
-
-    if (data.role) {
-      whereClause.TeamMemberRole = {
-        some: {
-          role: data.role,
-        },
-      };
-    }
-
-    if (typeof data.active === 'boolean') {
-      whereClause.TeamMemberRole = {
-        some: {
-          active: data.active,
-        },
-      };
-    }
-
-    if (data.joinedFrom || data.joinedTo) {
-      whereClause.joinedAt = {};
-      if (data.joinedFrom) {
-        whereClause.joinedAt.gte = dayjs(data.joinedFrom).toDate();
-        if (data.joinedTo) {
-          whereClause.joinedAt.lte = dayjs(data.joinedTo).toDate();
-        }
-      }
-
-      return {
-        where: whereClause,
-      };
-    }
-  });
+  .strict();
 
 export type TeamMembershipQueryDto = z.infer<typeof teamMembershipQuerySchema>;

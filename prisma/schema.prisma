@@ -294,6 +294,7 @@ model Team {
   responsibilities String[]
   project          Project          @relation(fields: [projectId], references: [id])
   memberShips      TeamMembership[]
+  TeamWallet       TeamWallet?
 
   @@unique([projectId, name])
   @@map("teams")
@@ -334,14 +335,15 @@ model Wallet {
   balance   Float        @default(0.0)
   currency  Currency     @default(USD)
   status    WalletStatus @default(ACTIVE)
-  projectId String?
+  projectId String       @unique
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
   // Relations
-  project Project? @relation(fields: [projectId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
 
-  transactions WalletTransaction[]
+  transactions    WalletTransaction[]
+  TeamTransaction TeamTransaction[]
 
   @@map("wallets")
 }
@@ -373,6 +375,7 @@ model WalletTransaction {
   transactionType TransactionType
   description     String?
   transactionById String
+  transactionDate DateTime        @default(now())
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -386,6 +389,39 @@ model WalletTransaction {
 enum TransactionType {
   CREDIT
   DEBIT
+}
+
+model TeamWallet {
+  id        String       @id @default(uuid())
+  balance   Float        @default(0.0)
+  currency  Currency     @default(USD)
+  status    WalletStatus @default(ACTIVE)
+  teamId    String       @unique
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Relations
+  team         Team              @relation(fields: [teamId], references: [id])
+  transactions TeamTransaction[]
+
+  @@map("team_wallets")
+}
+
+model TeamTransaction {
+  id              String          @id @default(uuid())
+  teamWalletId    String
+  amount          Float
+  transactionType TransactionType
+  description     String?
+  projectWalletId String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  teamWallet    TeamWallet @relation(fields: [teamWalletId], references: [id])
+  projectWallet Wallet     @relation(fields: [projectWalletId], references: [id])
+
+  @@map("team_transactions")
 }
 
 model Task {

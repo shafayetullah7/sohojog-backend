@@ -1,18 +1,18 @@
 import { Prisma, PrismaClient, ProjectAdminRole } from '@prisma/client';
 import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter';
 
-const getManagerTeam = async (
+const getManagerWallet = async (
   prisma: PrismaClient | Prisma.TransactionClient,
   userId: string,
-  teamId: string,
+  walletId: string,
 ) => {
-  const managerTeam = await prisma.team.findFirst({
+  const managerWallet = await prisma.wallet.findFirst({
     where: {
-      id: teamId,
+      id: walletId,
       project: {
         participations: {
           some: {
-            userId: userId,
+            userId,
             adminRole: {
               some: { role: ProjectAdminRole.MANAGER, active: true },
             },
@@ -35,8 +35,9 @@ const getManagerTeam = async (
     },
   });
 
-  if (!managerTeam) return managerTeam;
-  const { project: projectData, ...team } = managerTeam;
+  if (!managerWallet) return managerWallet;
+  const { project: projectData, ...wallet } = managerWallet;
+
   const { participations, ...project } = projectData;
   const managerParticipation = participations.find(
     (participation) => participation.userId === userId,
@@ -46,11 +47,11 @@ const getManagerTeam = async (
 
   return {
     project,
-    team,
+    wallet,
     manager: { user: getSafeUserInfo(user), adminRole, participation },
   };
 };
 
-export const managerTeamHelper = {
-  getManagerTeam,
+export const managerWalletHelper = {
+  getManagerWallet,
 };

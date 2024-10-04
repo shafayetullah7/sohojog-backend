@@ -10,7 +10,8 @@ import { AddRoleToMemberDto } from './dto/add.member.role.dto';
 import { managerTeamMembershipHelpers } from 'src/_helpers/access-helpers/manager-access/manager.membership.helper';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { TeamMembershipQueryDto } from './dto/get.membership.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProjectAdminRole } from '@prisma/client';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class TeamMembershipService {
@@ -61,6 +62,7 @@ export class TeamMembershipService {
 
     const newMembership = await this.prisma.teamMembership.create({
       data: {
+        teamId,
         ...payload,
         joinedAt: new Date(),
       },
@@ -124,8 +126,68 @@ export class TeamMembershipService {
   }
 
   async getMemberships(userId: string, query: TeamMembershipQueryDto) {
+    const whereClause: Prisma.TeamMembershipWhereInput = {};
+
+    if (query.teamId) {
+      whereClause.teamId = query.teamId;
+    }
+
+    if (query.participationId) {
+      whereClause.participationId = query.participationId;
+    }
+
+    if (query.projectId) {
+      whereClause.participation = { projectId: query.projectId };
+    }
+
+    if (query.role) {
+      whereClause.TeamMemberRole = {
+        some: {
+          role: query.role,
+        },
+      };
+    }
+
+    if (typeof query.active === 'boolean') {
+      whereClause.TeamMemberRole = {
+        some: {
+          active: query.active,
+        },
+      };
+    }
+
+    if (query.joinedFrom || query.joinedTo) {
+      whereClause.joinedAt = {};
+      if (query.joinedFrom) {
+        whereClause.joinedAt.gte = dayjs(query.joinedFrom).toDate();
+        if (query.joinedTo) {
+          whereClause.joinedAt.lte = dayjs(query.joinedTo).toDate();
+        }
+      }
+
+      return {
+        where: whereClause,
+      };
+    }
     const memberships = await this.prisma.teamMembership.findMany({
-      where: { ...query?.where, },
+      where: {
+        ...whereClause,
+        team: {
+          project: {
+            participations: {
+              some: {
+                userId,
+                adminRole: { some: { role: ProjectAdminRole.MANAGER } },
+              },
+            },
+          },
+        },
+      },
     });
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Memberships retrieved')
+      .setData(memberships);
   }
 }

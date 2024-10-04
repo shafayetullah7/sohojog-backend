@@ -4,7 +4,6 @@ import { z } from 'zod';
 
 export const createTeamMembershipSchema = z.object({
   participationId: z.string().uuid('Invalid participation ID format'),
-  teamId: z.string().uuid('Invalid team ID format'),
   purpose: z
     .string()
     .max(1000, 'Purpose should not exceed 1000 characters')
