@@ -9,7 +9,6 @@ import { ResponseBuilder } from 'src/shared/modules/response-builder/response.bu
 import { CreateProjectBodyDto } from './dto/create.project.dto';
 import { GetMyProjectsQueryDto } from './dto/get.my.projets.dto';
 import { UpdateProjectBodyDto } from './dto/update.project.dto';
-import { ProjectAdminRole } from '@prisma/client';
 
 @Injectable()
 export class ProjectService {
@@ -44,9 +43,7 @@ export class ProjectService {
               userId,
               joinedAt: new Date(),
               adminRole: {
-                create: {
-                  role: ProjectAdminRole.MANAGER,
-                },
+                create: {},
               },
             },
           },

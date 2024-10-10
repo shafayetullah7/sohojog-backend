@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, ProjectAdminRole } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter';
 
 const getManagerMembership = async (
@@ -17,7 +17,6 @@ const getManagerMembership = async (
               adminRole: {
                 some: {
                   active: true,
-                  role: ProjectAdminRole.MANAGER,
                 },
               },
             },
@@ -26,7 +25,7 @@ const getManagerMembership = async (
       },
     },
     include: {
-      TeamMemberRole: true,
+      teamLeader: true,
       participation: {
         include: { user: true },
       },
@@ -38,7 +37,7 @@ const getManagerMembership = async (
                 where: {
                   userId,
                   adminRole: {
-                    some: { role: ProjectAdminRole.MANAGER, active: true },
+                    some: { active: true },
                   },
                 },
                 include: { adminRole: true, user: true },
@@ -54,7 +53,7 @@ const getManagerMembership = async (
 
   const {
     team,
-    TeamMemberRole,
+    teamLeader,
     participation: memberParticipation,
     ...teamMemberShip
   } = membership;
@@ -79,6 +78,7 @@ const getManagerMembership = async (
     member: {
       membership: teamMemberShip,
       user: getSafeUserInfo(memberUser),
+      teamLeader,
     },
     manager: {
       user: getSafeUserInfo(managerUser),

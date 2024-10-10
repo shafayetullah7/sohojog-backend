@@ -10,7 +10,7 @@ import { AddRoleToMemberDto } from './dto/add.member.role.dto';
 import { managerTeamMembershipHelpers } from 'src/_helpers/access-helpers/manager-access/manager.membership.helper';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { TeamMembershipQueryDto } from './dto/get.membership.dto';
-import { Prisma, ProjectAdminRole } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 
 @Injectable()
@@ -79,51 +79,7 @@ export class TeamMembershipService {
       .setData({ membership: newMembership });
   }
 
-  async addRoleToMember(userId: string, payload: AddRoleToMemberDto) {
-    const managedMembership =
-      await managerTeamMembershipHelpers.getManagerMembership(
-        this.prisma,
-        userId,
-        payload.membershipId,
-      );
-
-    if (!managedMembership) {
-      throw new NotFoundException('Membership not found.');
-    }
-
-    const existingRole = await this.prisma.teamMemberRole.findUnique({
-      where: {
-        membershipId_role: {
-          membershipId: payload.membershipId,
-          role: payload.role,
-        },
-      },
-    });
-
-    if (existingRole) {
-      throw new BadRequestException(
-        'This role is already assigned to the member.',
-      );
-    }
-
-    const newRole = await this.prisma.teamMemberRole.create({
-      data: {
-        membershipId: payload.membershipId,
-        role: payload.role,
-      },
-      include: {
-        membership: true,
-      },
-    });
-
-    const { membership, ...restRole } = newRole;
-    const result = { newRole };
-
-    return this.response
-      .setSuccess(true)
-      .setMessage('Team role assigned')
-      .setData({ role: newRole });
-  }
+  async addTeamLeader(userId: string, payload: AddRoleToMemberDto) {}
 
   async getMemberships(userId: string, query: TeamMembershipQueryDto) {
     const whereClause: Prisma.TeamMembershipWhereInput = {};
@@ -141,19 +97,7 @@ export class TeamMembershipService {
     }
 
     if (query.role) {
-      whereClause.TeamMemberRole = {
-        some: {
-          role: query.role,
-        },
-      };
-    }
-
-    if (typeof query.active === 'boolean') {
-      whereClause.TeamMemberRole = {
-        some: {
-          active: query.active,
-        },
-      };
+      whereClause.roles = { has: query.role };
     }
 
     if (query.joinedFrom || query.joinedTo) {
@@ -177,7 +121,7 @@ export class TeamMembershipService {
             participations: {
               some: {
                 userId,
-                adminRole: { some: { role: ProjectAdminRole.MANAGER } },
+                adminRole: { some: { active: true } },
               },
             },
           },

@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, ProjectAdminRole } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter';
 
 const getManagerProject = async (
@@ -15,7 +15,7 @@ const getManagerProject = async (
             some: {
               userId: userId,
               adminRole: {
-                some: { role: ProjectAdminRole.MANAGER, active: true },
+                some: { active: true },
               },
             },
           },

@@ -6,12 +6,13 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTeamBodyDto } from './dto/create.team.dto';
-import { ProjectAdminRole } from '@prisma/client';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { UpdateTeamBodyDto } from './dto/update.team.dto';
 import { GetMyProjectTeamsQueryDto } from './dto/get.team.dto';
 import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.helper';
 import { managerTeamHelper } from 'src/_helpers/access-helpers/manager-access/manager.team.helper';
+import { AssignTeamRoleDto } from './dto/assign.team.role.dto';
+import { managerTeamMembershipHelpers } from 'src/_helpers/access-helpers/manager-access/manager.membership.helper';
 
 @Injectable()
 export class TeamService {
@@ -22,25 +23,6 @@ export class TeamService {
 
   async createTeam(userId: string, payload: CreateTeamBodyDto) {
     const { projectId, ...teamData } = payload;
-
-    // Check if the user is a Project Admin with a role of MANAGER for the specified project
-    // const project = await this.prisma.project.findFirst({
-    //   where: {
-    //     AND: [
-    //       { id: projectId },
-    //       {
-    //         participations: {
-    //           some: {
-    //             userId: userId,
-    //             adminRole: {
-    //               some: { role: ProjectAdminRole.MANAGER, active: true },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     ],
-    //   },
-    // });
 
     const managerProject = await managerProjectHelper.getManagerProject(
       this.prisma,
@@ -93,7 +75,7 @@ export class TeamService {
           participations: {
             some: {
               userId,
-              adminRole: { some: { role: ProjectAdminRole.MANAGER } },
+              adminRole: { some: { active: true } },
             },
           },
           // AND: [
@@ -137,5 +119,45 @@ export class TeamService {
       .setSuccess(true)
       .setMessage('Team updated successfully')
       .setData(result);
+  }
+
+  async createTeamLeader(userId: string, payload: AssignTeamRoleDto) {
+    const { membershipId, role, active } = payload;
+
+    const managerMembership =
+      await managerTeamMembershipHelpers.getManagerMembership(
+        this.prisma,
+        userId,
+        membershipId,
+      );
+
+    if (!managerMembership) {
+      throw new NotFoundException('Team membership not found');
+    }
+
+    const {
+      member: { membership },
+    } = managerMembership;
+
+    const existingRole = await this.prisma.teamLeader.findUnique({
+      where: {
+        membershipId: membership.id,
+      },
+    });
+
+    if (existingRole) {
+      throw new BadRequestException('Role already assigned to the team member');
+    }
+
+    const teamMemberRole = await this.prisma.teamLeader.create({
+      data: {
+        membershipId: membership.id,
+      },
+    });
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Member role defined.')
+      .setData(teamMemberRole);
   }
 }

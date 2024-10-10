@@ -8,8 +8,9 @@ import { CreateInvitationBodyDto } from './dto/create.invitation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EmailService } from 'src/shared/modules/email/email.service';
 import { GetInvitationsQueryDto } from './dto/get.invitation.dto';
-import { Prisma, ProjectAdminRole } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
+import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.helper';
 
 @Injectable()
 export class InvitationService {
@@ -23,23 +24,19 @@ export class InvitationService {
     const result = await this.prisma.$transaction(async (tx) => {
       const { projectId, email, sendEmail } = payload;
 
-      const projectAdmin = await tx.projectAdmin.findFirst({
-        where: {
-          participation: {
-            userId, // Check if the user is part of the project
-            projectId, // Check for the specific project
-          },
-          role: ProjectAdminRole.MANAGER, // Role can be adjusted as per your requirement
-          active: true, // Check if the admin is active
-        },
-        include: { participation: { select: { userId: true } } }, // Include participation for validation
-      });
+      const managerProject = await managerProjectHelper.getManagerProject(
+        tx,
+        userId,
+        payload.projectId,
+      );
 
-      if (!projectAdmin) {
-        throw new ForbiddenException(
-          'You do not have permission to send invitations for this project.',
-        );
+      if (!managerProject) {
+        throw new ForbiddenException('Project do not exists in your registry.');
       }
+      const {
+        manager: { user },
+        project,
+      } = managerProject;
 
       // Upsert the invitation
       const invitation = await tx.invitation.upsert({
@@ -52,14 +49,14 @@ export class InvitationService {
         create: {
           email,
           message: payload.message,
-          invitedBy: projectAdmin.participation.userId,
+          invitedBy: user.id,
           projectId: projectId,
           invitedUserName: payload.invitedUserName,
           sentAt: new Date(),
         },
         update: {
           message: payload.message,
-          invitedBy: projectAdmin.participation.userId,
+          invitedBy: user.id,
           invitedUserName: payload.invitedUserName,
           sentAt: new Date(),
         },
@@ -98,7 +95,7 @@ export class InvitationService {
             participations: {
               some: {
                 userId,
-                adminRole: { some: { role: ProjectAdminRole.MANAGER } },
+                adminRole: { some: { active: true } },
               },
             },
           },

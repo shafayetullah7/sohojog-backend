@@ -1,4 +1,4 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateTeamWalletTransactionDto } from './create-team-wallet-transaction.dto';
+import { createTeamWalletTransactionDtoSchema } from './create-team-wallet-transaction.dto';
 
-export class UpdateTeamWalletTransactionDto extends PartialType(CreateTeamWalletTransactionDto) {}
+// export class UpdateTeamWalletTransactionDto extends PartialType(createTeamWalletTransactionDtoSchema) {}

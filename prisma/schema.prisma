@@ -143,7 +143,7 @@ model Project {
   participations Participation[]
   teams          Team[]
   creator        User                 @relation(name: "project_creator", fields: [creatorId], references: [id])
-  Wallet         Wallet[]
+  wallet         Wallet[]
   Task           Task[]
 
   @@unique([creatorId, title])
@@ -151,17 +151,17 @@ model Project {
 }
 
 model ProjectAdmin {
-  id              String           @id @default(uuid())
-  participationId String
-  role            ProjectAdminRole
-  active          Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id              String   @id @default(uuid())
+  participationId String   @unique
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   participation     Participation       @relation(fields: [participationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   WalletTransaction WalletTransaction[]
+  // Task              Task[]
+  ManagerTasks      ManagerTasks[]
 
-  @@unique([participationId, role])
   @@map("project_admins")
 }
 
@@ -301,33 +301,33 @@ model Team {
 }
 
 model TeamMembership {
-  id               String   @id @default(uuid())
+  id               String     @id @default(uuid())
   participationId  String
   teamId           String
-  purpose          String?  @db.Text
+  purpose          String?    @db.Text
   responsibilities String[]
-  joinedAt         DateTime @default(now())
+  joinedAt         DateTime   @default(now())
+  roles            TeamRole[]
 
   // Relations
-  team           Team             @relation(fields: [teamId], references: [id])
-  participation  Participation    @relation(fields: [participationId], references: [id])
-  TeamMemberRole TeamMemberRole[]
+  team          Team          @relation(fields: [teamId], references: [id])
+  participation Participation @relation(fields: [participationId], references: [id])
+  teamLeader    TeamLeader?
 
   @@unique([participationId, teamId])
   @@map("team_memberships")
 }
 
-model TeamMemberRole {
-  id           String   @id @default(uuid())
-  membershipId String
-  role         TeamRole
-  active       Boolean  @default(true)
+model TeamLeader {
+  id           String  @id @default(uuid())
+  membershipId String  @unique
+  active       Boolean @default(true)
 
   // Relations
-  membership TeamMembership @relation(fields: [membershipId], references: [id])
+  membership      TeamMembership    @relation(fields: [membershipId], references: [id])
+  TeamLeaderTasks TeamLeaderTasks[]
 
-  @@unique([membershipId, role])
-  @@map("team_member_roles")
+  @@map("team_leaders")
 }
 
 model Wallet {
@@ -342,8 +342,7 @@ model Wallet {
   // Relations
   project Project @relation(fields: [projectId], references: [id])
 
-  transactions    WalletTransaction[]
-  TeamTransaction TeamTransaction[]
+  transactions WalletTransaction[]
 
   @@map("wallets")
 }
@@ -380,8 +379,9 @@ model WalletTransaction {
   updatedAt       DateTime        @updatedAt
 
   // Relations
-  wallet        Wallet       @relation(fields: [walletId], references: [id])
-  transactionBy ProjectAdmin @relation(fields: [transactionById], references: [id])
+  wallet          Wallet            @relation(fields: [walletId], references: [id])
+  transactionBy   ProjectAdmin      @relation(fields: [transactionById], references: [id])
+  TeamTransaction TeamTransaction[]
 
   @@map("wallet_transactions")
 }
@@ -408,42 +408,21 @@ model TeamWallet {
 }
 
 model TeamTransaction {
-  id              String          @id @default(uuid())
-  teamWalletId    String
-  amount          Float
-  transactionType TransactionType
-  description     String?
-  projectWalletId String
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                         String          @id @default(uuid())
+  teamWalletId               String
+  amount                     Float
+  transactionType            TransactionType
+  description                String?
+  transactionDate            DateTime        @default(now())
+  projectWalletTransactionId String
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
 
   // Relations
-  teamWallet    TeamWallet @relation(fields: [teamWalletId], references: [id])
-  projectWallet Wallet     @relation(fields: [projectWalletId], references: [id])
+  teamWallet               TeamWallet        @relation(fields: [teamWalletId], references: [id])
+  projectWalletTransaction WalletTransaction @relation(fields: [projectWalletTransactionId], references: [id])
 
   @@map("team_transactions")
-}
-
-model Task {
-  id           String       @id @default(uuid())
-  title        String       @db.VarChar(255)
-  description  String?      @db.Text
-  status       TaskStatus   @default(TODO)
-  priority     TaskPriority @default(MEDIUM)
-  dueDate      DateTime?
-  assignedToId String?
-  projectId    String
-  // createdById    String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  // Relations
-  // createdBy      ProjectAdmin            @relation("task_creator", fields: [createdById], references: [id])
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  // TaskAssignment TaskAssignment[]
-
-  @@unique([projectId, title])
-  @@map("tasks")
 }
 
 enum TaskStatus {
@@ -460,38 +439,54 @@ enum TaskPriority {
   CRITICAL
 }
 
-// model TaskAssignment {
-//   id         String   @id @default(uuid())
-//   taskId     String
-//   userId     String
-//   assignedAt DateTime @default(now())
-//   assignedBy String
+model Task {
+  id           String       @id @default(uuid())
+  title        String       @db.VarChar(255)
+  description  String?      @db.Text
+  status       TaskStatus   @default(TODO)
+  priority     TaskPriority @default(MEDIUM)
+  dueDate      DateTime?
+  assignedToId String?
+  projectId    String
+  createdBy    String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-//   // Relations
-//   task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-//   user     User @relation(fields: [userId], references: [id])
-//   assigner User @relation("assigned_by", fields: [assignedBy], references: [id])
+  // Relations
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // TaskAssignment TaskAssignment[]
+  ManagerTasks    ManagerTasks?
+  TeamLeaderTasks TeamLeaderTasks?
 
-//   @@unique([taskId, userId])
-//   @@map("task_assignments")
-// }
+  @@unique([projectId, title])
+  @@map("tasks")
+}
 
-// model TaskSubmission {
-//   id            String           @id @default(uuid())
-//   taskId        String
-//   userId        String
-//   submittedAt   DateTime         @default(now())
-//   status        SubmissionStatus
-//   comment       String? // Optional: Comments about the submission
-//   submissionUrl String? // Optional: URL to the submission (if a file or link)
+model ManagerTasks {
+  id        String   @id @default(uuid())
+  taskId    String   @unique
+  adminId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-//   // Relations
-//   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-//   user User @relation(fields: [userId], references: [id])
+  task    Task         @relation(fields: [taskId], references: [id])
+  creator ProjectAdmin @relation(fields: [adminId], references: [id])
 
-//   @@unique([taskId, userId])
-//   @@map("task_submissions")
-// }
+  @@map("manager_tasks")
+}
+
+model TeamLeaderTasks {
+  id           String   @id @default(uuid())
+  taskId       String   @unique
+  teamLeaderId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  task    Task       @relation(fields: [taskId], references: [id])
+  creator TeamLeader @relation(fields: [teamLeaderId], references: [id])
+
+  @@map("team_leader_tasks")
+}
 
 enum SubmissionStatus {
   PENDING
