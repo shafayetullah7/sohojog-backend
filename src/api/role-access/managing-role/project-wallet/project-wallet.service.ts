@@ -6,17 +6,22 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProjectWalletDto } from './dto/create.project.wallet';
 import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.helper';
-import { UpdateWalletStatusBodyDto } from './dto/update.project.wallet.status';
 import { managerWalletHelper } from 'src/_helpers/access-helpers/manager-access/manager.wallet.helper';
+import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { Wallet } from '@prisma/client';
+import { UpdateProjectWalletBodyDto } from './dto/update.project.wallet';
 
 @Injectable()
 export class ProjectWalletService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly response: ResponseBuilder<any>,
+  ) {}
 
   async createWallet(
     userId: string,
     CreateProjectWalletDto: CreateProjectWalletDto,
-  ) {
+  ): Promise<ResponseBuilder<{ walles: Wallet }>> {
     const { projectId, balance, currency, status } = CreateProjectWalletDto;
 
     const managerProject = await managerProjectHelper.getManagerProject(
@@ -46,14 +51,17 @@ export class ProjectWalletService {
       },
     });
 
-    return wallet;
+    return this.response
+      .setSuccess(true)
+      .setMessage('Project wallet created successfully.')
+      .setData({ wallet });
   }
 
   async updateWalletStatus(
     userId: string,
     walletId: string,
-    updateWalletStatusDto: UpdateWalletStatusBodyDto,
-  ) {
+    updateWalletStatusDto: UpdateProjectWalletBodyDto,
+  ): Promise<ResponseBuilder<{ wallet: Wallet }>> {
     const { status } = updateWalletStatusDto;
 
     const managerWallet = await managerWalletHelper.getManagerWallet(
@@ -74,7 +82,10 @@ export class ProjectWalletService {
       },
     });
 
-    return updatedWallet;
+    return this.response
+      .setSuccess(true)
+      .setMessage('Project wallet updated')
+      .setData({ wallet: updatedWallet });
   }
 
   // Method to get wallet by ID
