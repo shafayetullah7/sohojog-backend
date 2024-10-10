@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -37,6 +38,20 @@ export class InvitationService {
         manager: { user },
         project,
       } = managerProject;
+
+      if (payload.email === user.email) {
+        throw new BadRequestException('You are already a part of the project.');
+      }
+
+      const existingParticipation = await tx.participation.findFirst({
+        where: { projectId: payload.projectId, user: { email: payload.email } },
+      });
+
+      if (existingParticipation) {
+        throw new BadRequestException(
+          'The user is already a part of the project.',
+        );
+      }
 
       // Upsert the invitation
       const invitation = await tx.invitation.upsert({

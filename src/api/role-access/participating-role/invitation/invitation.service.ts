@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -114,26 +115,31 @@ export class InvitationService {
         );
       }
 
+      const existingParticipation = await tx.participation.findFirst({
+        where: { userId, projectId: invitation.projectId },
+      });
+
+      if (existingParticipation) {
+        throw new ConflictException('User is already a part of the project.');
+      }
+
       const updatedInvitation = await tx.invitation.update({
         where: { id: invitationId },
         data: payload,
       });
 
-      const participations = await tx.participation.create({
+      const participation = await tx.participation.create({
         data: {
           projectId: invitation.projectId,
           userId,
           invitationId: invitation.id,
         },
-        include: {
-          invitation: true,
-        },
       });
-      return participations;
+      return { participation, invitation: updatedInvitation };
     });
     return this.response
       .setSuccess(true)
-      .setMessage(`Invitation ${payload.status.toLowerCase}.`)
+      .setMessage(`Invitation ${payload.status.toLowerCase()}.`)
       .setData(result);
   }
 }

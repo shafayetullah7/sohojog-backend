@@ -7,8 +7,19 @@ import { ProjectWalletModule } from './project-wallet/project-wallet.module';
 import { ProjectWalletTransactionModule } from './project-wallet-transaction/project-wallet-transaction.module';
 import { TeamWalletModule } from './team-wallet/team-wallet.module';
 import { TeamWalletTransactionModule } from './team-wallet-transaction/team-wallet-transaction.module';
+import { ProjectParticipationModule } from './project-participation/project-participation.module';
 
 @Module({
-  imports: [ProjectModule, InvitationModule, TeamModule, TeamMembershipModule, ProjectWalletModule, ProjectWalletTransactionModule, TeamWalletModule, TeamWalletTransactionModule],
+  imports: [
+    ProjectModule,
+    InvitationModule,
+    TeamModule,
+    TeamMembershipModule,
+    ProjectWalletModule,
+    ProjectWalletTransactionModule,
+    TeamWalletModule,
+    TeamWalletTransactionModule,
+    ProjectParticipationModule,
+  ],
 })
 export class ManagingRoleModule {}

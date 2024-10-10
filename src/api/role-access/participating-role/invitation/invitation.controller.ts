@@ -28,7 +28,7 @@ import {
   invitationResponseParamSchema,
 } from './dto/invitation.response.dto';
 
-@Controller('invitation')
+@Controller('participant/invitations')
 export class InvitationController {
   constructor(private readonly invitationService: InvitationService) {}
 
@@ -47,7 +47,7 @@ export class InvitationController {
     return result;
   }
 
-  @Patch()
+  @Patch("/:id")
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
   async respondToInvitationn(
