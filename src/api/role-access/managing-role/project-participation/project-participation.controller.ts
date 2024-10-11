@@ -1,4 +1,12 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ProjectParticipationService } from './project-participation.service';
 import { Roles } from 'src/shared/custom-decorator/roles.decorator';
 import { Role } from 'src/constants/enums/user.roles';
@@ -12,6 +20,12 @@ import {
 } from './dto/project.participation.query.dto';
 import { User } from 'src/shared/custom-decorator/user.decorator';
 import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
+import {
+  ProjectParticipationUpdateDto,
+  ProjectParticipationUpdateParamDto,
+  projectParticipationUpdateParamSchema,
+  projectParticipationUpdatePayloadSchema,
+} from './dto/project.participation.update.dto';
 
 @Controller('manager/project-participations')
 export class ProjectParticipationController {
@@ -31,6 +45,27 @@ export class ProjectParticipationController {
       await this.projectParticipationService.getProjectParticipations(
         user.userId,
         query,
+      );
+
+    return result;
+  }
+
+  @Patch('/:participationId')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async updateProjectParticipation(
+    @Body(ZodValidation(projectParticipationUpdatePayloadSchema))
+    payload: ProjectParticipationUpdateDto,
+    @Param(ZodValidation(projectParticipationUpdateParamSchema))
+    param: ProjectParticipationUpdateParamDto,
+    @User() user: JwtUser,
+  ) {
+    const { participationId } = param;
+    const result =
+      await this.projectParticipationService.updateProjectParticipations(
+        user.userId,
+        participationId,
+        payload,
       );
 
     return result;

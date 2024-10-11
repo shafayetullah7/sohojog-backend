@@ -1,12 +1,12 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter';
 
-const getManagerProject = async (
+const getManagerParticipant = async (
   prisma: PrismaClient | Prisma.TransactionClient,
   managerId: string,
   participationId: string,
 ) => {
-  const participation = await prisma.participation.findFirst({
+  const managerParticipation = await prisma.participation.findFirst({
     where: {
       id: participationId,
       project: {
@@ -24,6 +24,7 @@ const getManagerProject = async (
       },
     },
     include: {
+      user: true,
       project: {
         include: {
           participations: {
@@ -37,8 +38,35 @@ const getManagerProject = async (
       },
     },
   });
+
+  if (!managerParticipation) return null;
+  const { project: projectData, ...participantData } = managerParticipation;
+  const { user, ...participation } = participantData;
+  const { participations, ...project } = projectData;
+  const managerData = participations.find(
+    (participation) => participation.user.id === managerId,
+  );
+  if (!managerData) return null;
+  const {
+    adminRole,
+    user: managerUser,
+    ...managerParticipationData
+  } = managerData;
+
+  return {
+    project,
+    participation: {
+      user,
+      participation,
+    },
+    manager: {
+      adminRole,
+      user: managerUser,
+      participation: managerParticipationData,
+    },
+  };
 };
 
-export const managerProjectHelper = {
-  getManagerProject,
+export const managerParticipationHelper = {
+  getManagerParticipant,
 };

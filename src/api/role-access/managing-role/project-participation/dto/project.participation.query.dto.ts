@@ -1,5 +1,4 @@
-import { ParticipantionStatus } from '@prisma/client';
-import { ParticipantRole } from 'src/constants/enums/participant.e';
+import { ParticipationRole, ParticipationStatus } from '@prisma/client';
 import { z } from 'zod';
 
 export const projectParticipationQuerySchema = z
@@ -7,8 +6,8 @@ export const projectParticipationQuerySchema = z
     id: z.string().uuid('Invalid Id'),
     projectId: z.string().uuid('Invalid Id'),
     userId: z.string().uuid('Invalid Id'),
-    status: z.nativeEnum(ParticipantionStatus),
-    role: z.nativeEnum(ParticipantRole),
+    status: z.nativeEnum(ParticipationStatus),
+    role: z.nativeEnum(ParticipationRole),
     invitationId: z.string().uuid('Invalid Id'),
     joinedAt: z.string().date(),
     joinedFrom: z.string().date(),

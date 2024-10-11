@@ -1,9 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProjectParticipationQueryDto } from './dto/project.participation.query.dto';
-import { Prisma } from '@prisma/client';
+import { ParticipationStatus, Prisma } from '@prisma/client';
 import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
 import { ProjectParticipationUpdateDto } from './dto/project.participation.update.dto';
+import { managerParticipationHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.participation.helper';
 
 @Injectable()
 export class ProjectParticipationService {
@@ -82,5 +87,32 @@ export class ProjectParticipationService {
     userId: string,
     participationId: string,
     payload: ProjectParticipationUpdateDto,
-  ) {}
+  ) {
+    const managerParticipation =
+      await managerParticipationHelper.getManagerParticipant(
+        this.prisma,
+        userId,
+        participationId,
+      );
+
+    if (!managerParticipation) {
+      throw new NotFoundException('Participation not found.');
+    }
+    const { participation } = managerParticipation;
+    if (participation.participation.status === ParticipationStatus.REMOVED) {
+      throw new BadRequestException(
+        'Participant has already been removed from he project.',
+      );
+    }
+
+    const updatedParticipation = await this.prisma.participation.update({
+      where: { id: participationId },
+      data: payload,
+    });
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Participation updated')
+      .setData(updatedParticipation);
+  }
 }

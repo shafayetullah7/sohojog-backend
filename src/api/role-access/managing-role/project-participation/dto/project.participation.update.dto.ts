@@ -1,9 +1,9 @@
-import { ParticipantionStatus } from '@prisma/client';
+import { ParticipationStatus } from '@prisma/client';
 import { z } from 'zod';
 
 export const projectParticipationUpdatePayloadSchema = z
   .object({
-    status: z.nativeEnum(ParticipantionStatus),
+    status: z.nativeEnum(ParticipationStatus),
   })
   .partial();
 
