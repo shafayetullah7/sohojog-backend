@@ -101,9 +101,10 @@ model User {
   image               Image[]
   projectStakeholder  ProjectStakeholder[]
   Invitation          Invitation[]
-  participations     Participation[]      @relation("participation")
+  participations      Participation[]      @relation("participation")
   CreatedProjects     Project[]            @relation("project_creator")
   // TaskAssignment      TaskAssignment[]
+  File                File[]
 
   @@unique([googleId, id])
   @@map("users")
@@ -157,11 +158,11 @@ model ProjectAdmin {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  participation     Participation       @relation(fields: [participationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  WalletTransaction WalletTransaction[]
+  participation      Participation        @relation(fields: [participationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  WalletTransaction  WalletTransaction[]
   // Task              Task[]
-  ManagerTasks      ManagerTasks[]
-  TeamTask          TeamTask[]
+  ManagerTasks       ManagerTasks[]
+  TeamTaskAssignment TeamTaskAssignment[]
 
   @@map("project_admins")
 }
@@ -180,41 +181,24 @@ model ProjectStakeholder {
   @@map("project_stakeholders")
 }
 
-model Image {
-  id     String  @id @default(uuid())
-  userId String
-  url    String
-  used   Boolean @default(false)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, url])
-  @@map("images")
-}
-
-
-
 model Invitation {
-  id               String       @id @default(uuid())
-  email            String
-  projectId        String
-  status           InviteStatus @default(PENDING)
-  invitedUserName  String?
-  message          String?      @db.Text
-  invitedBy        String
-  sentAt           DateTime?
-  actionedAt       DateTime?
-  seen             Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id              String       @id @default(uuid())
+  email           String
+  projectId       String
+  status          InviteStatus @default(PENDING)
+  invitedUserName String?
+  message         String?      @db.Text
+  invitedBy       String
+  sentAt          DateTime?
+  actionedAt      DateTime?
+  seen            Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
   participationId String?
 
   // Relations
-  project        Project        @relation(fields: [projectId], references: [id])
-  inviter        User           @relation(fields: [invitedBy], references: [id])
+  project       Project        @relation(fields: [projectId], references: [id])
+  inviter       User           @relation(fields: [invitedBy], references: [id])
   participation Participation? @relation(name: "invited_participation")
 
   @@unique([projectId, email])
@@ -222,39 +206,41 @@ model Invitation {
 }
 
 model Participation {
-  id           String               @id @default(uuid())
+  id           String              @id @default(uuid())
   projectId    String
   userId       String
   status       ParticipationStatus @default(ACTIVE)
   role         ParticipationRole   @default(MEMBER)
-  invitationId String?              @unique
+  invitationId String?             @unique
   joinedAt     DateTime?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   invitation     Invitation?      @relation(name: "invited_participation", fields: [invitationId], references: [id])
   project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user           User             @relation("participation", fields: [userId], references: [id])
   adminRole      ProjectAdmin[]
   TeamMembership TeamMembership[]
+  TaskAssignment TaskAssignment[]
+  TaskSubmission TaskSubmission[]
 
   @@unique([projectId, userId])
   @@map("participations")
 }
 
 model Team {
-  id               String           @id @default(uuid())
-  name             String           @db.VarChar(255)
-  purpose          String?          @db.Text
-  projectId        String
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  status           TeamStatus       @default(ACTIVE)
-  responsibilities String[]
-  project          Project          @relation(fields: [projectId], references: [id])
-  memberShips      TeamMembership[]
-  TeamWallet       TeamWallet?
-  TeamTask         TeamTask[]
+  id                 String               @id @default(uuid())
+  name               String               @db.VarChar(255)
+  purpose            String?              @db.Text
+  projectId          String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  status             TeamStatus           @default(ACTIVE)
+  responsibilities   String[]
+  project            Project              @relation(fields: [projectId], references: [id])
+  memberShips        TeamMembership[]
+  TeamWallet         TeamWallet?
+  TeamTaskAssignment TeamTaskAssignment[]
 
   @@unique([projectId, name])
   @@map("teams")
@@ -389,6 +375,7 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+  HALTED
   ARCHIVED
 }
 
@@ -399,19 +386,25 @@ enum TaskPriority {
   CRITICAL
 }
 
+enum TaskAssignmentType {
+  GROUP
+  INDIVIDUAL
+}
+
 model Task {
-  id           String       @id @default(uuid())
-  title        String       @db.VarChar(255)
-  description  String?      @db.Text
-  status       TaskStatus   @default(TODO)
-  priority     TaskPriority @default(MEDIUM)
-  dueDate      DateTime?
-  inableBudget Boolean      @default(false)
-  budget       Int          @default(0)
-  projectId    String
-  createdBy    String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id                 String             @id @default(uuid())
+  title              String             @db.VarChar(255)
+  description        String?            @db.VarChar(1300)
+  status             TaskStatus         @default(TODO)
+  priority           TaskPriority       @default(MEDIUM)
+  dueDate            DateTime?
+  inableBudget       Boolean            @default(false)
+  budget             Int                @default(0)
+  projectId          String
+  createdBy          String
+  taskAssignmentType TaskAssignmentType
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   // Relations
   project            Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -419,10 +412,22 @@ model Task {
   ManagerTasks       ManagerTasks?
   TeamLeaderTasks    TeamLeaderTasks?
   budgetTransactions TaskBudgetTransaction[]
-  TeamTask           TeamTask[]
+  TaskAssignment     TaskAssignment[]
+  TeamTaskAssignment TeamTaskAssignment[]
+  TaskAttachments    TaskAttachments[]
 
   @@unique([projectId, title])
   @@map("tasks")
+}
+
+model TaskAttachments {
+  id        String   @id @default(uuid())
+  taskId    String
+  fileId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model ManagerTasks {
@@ -465,10 +470,16 @@ model TaskBudgetTransaction {
 }
 
 model TaskAssignment {
-  id String @id @default(uuid())
-  taskId String
-  participationId String
+  id              String   @id @default(uuid())
+  taskId          String
+  participationId String?
+  assignedAt      DateTime
 
+  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  participation Participation? @relation(fields: [participationId], references: [id], onDelete: SetNull)
+
+  @@unique([taskId, participationId])
+  @@map("team_task_assignment")
 }
 
 enum TeamTaskAssignStatus {
@@ -477,7 +488,7 @@ enum TeamTaskAssignStatus {
   COMPLETED
 }
 
-model TeamTask {
+model TeamTaskAssignment {
   id         String   @id @default(uuid())
   taskId     String
   teamId     String
@@ -497,7 +508,90 @@ model TeamTask {
 
 enum SubmissionStatus {
   PENDING
-  SUBMITTED
   APPROVED
   REJECTED
+}
+
+model TaskSubmission {
+  id            String           @id @default(uuid())
+  taskId        String
+  submittedById String?
+  description   String           @db.Text
+  status        SubmissionStatus
+
+  // relations
+  submittedBy    Participation?   @relation(fields: [submittedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  SubmissionFile SubmissionFile[]
+
+  @@map("task_submissions")
+}
+
+model SubmissionFile {
+  id           String   @id @default(uuid())
+  submissionId String
+  fileId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  taskSubmission TaskSubmission @relation(fields: [submissionId], references: [id])
+  file           File           @relation(fields: [fileId], references: [id])
+
+  @@map("submission_files")
+}
+
+enum FileType {
+  PDF
+  IMAGE // Generic for image files
+  VIDEO // Generic for video files
+  AUDIO // Generic for audio files
+  DOCUMENT // Generic for document files not explicitly defined
+  DOC // Microsoft Word Document
+  DOCX // Microsoft Word Open XML Document
+  PPT // Microsoft PowerPoint Presentation
+  PPTX // Microsoft PowerPoint Open XML Presentation
+  XLS // Microsoft Excel Spreadsheet
+  XLSX // Microsoft Excel Open XML Spreadsheet
+  CSV // Comma-Separated Values
+  TXT // Plain Text File
+  SPREADSHEET // Generic for spreadsheet files not explicitly defined
+  OTHER // For any other file type not covered
+}
+
+model File {
+  id        String   @id @default(uuid())
+  file      String
+  publicId  String
+  fileType  FileType
+  fileName  String
+  extension String
+  uploadBy  String?
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  uploader        User?             @relation(fields: [uploadBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  SubmissionFile  SubmissionFile[]
+  TaskAttachments TaskAttachments[]
+
+  @@map("files")
+}
+
+model Image {
+  id          String  @id @default(uuid())
+  uploadBy    String?
+  minUrl      String?
+  midUrl      String?
+  fullUrl     String?
+  minPublicId String?
+  midPublicId String?
+  maxPublicId String?
+  used        Boolean @default(false)
+
+  uploader User? @relation(fields: [uploadBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("images")
 }

@@ -35,6 +35,14 @@ export class EnvConfigService {
       EMAIL_USER: this.configService.get<string>('EMAIL_USER'),
       EMAIL_PASS: this.configService.get<string>('EMAIL_PASS'),
       QEV_API: this.configService.get<string>('QEV_API'),
+      CLOUDINARY_CLOUD_NAME: this.configService.get<string>(
+        'CLOUDINARY_CLOUD_NAME',
+      ),
+      CLOUDINARY_API_KEY: this.configService.get<string>('CLOUDINARY_API_KEY'),
+      CLOUDINARY_API_SECRET: this.configService.get<string>(
+        'CLOUDINARY_API_SECRET',
+      ),
+      CLOUDINARY_URL: this.configService.get<string>('CLOUDINARY_URL'),
     };
   }
 
@@ -91,5 +99,17 @@ export class EnvConfigService {
   }
   get qevApi(): string {
     return this.envConfig.QEV_API;
+  }
+  get cloudinaryCloudName(): string {
+    return this.envConfig.CLOUDINARY_CLOUD_NAME;
+  }
+  get cloudinaryApiKey(): string {
+    return this.envConfig.CLOUDINARY_API_KEY;
+  }
+  get cloudinaryApiSecret(): string {
+    return this.envConfig.CLOUDINARY_API_SECRET;
+  }
+  get cloudinaryApiUrl(): string {
+    return this.envConfig.CLOUDINARY_URL;
   }
 }

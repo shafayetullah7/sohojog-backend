@@ -22,6 +22,7 @@ import { UserModule } from './api/user-module/user/user.module';
 import { LeadingRoleModule } from './api/role-access/leading-role/leading-role.module';
 import { ManagingRoleModule } from './api/role-access/managing-role/managing-role.module';
 import { ParticipatingRoleModule } from './api/role-access/participating-role/participating-role.module';
+import { FilesModule } from './api/_general/files/files.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ParticipatingRoleModule } from './api/role-access/participating-role/pa
     LeadingRoleModule,
     ManagingRoleModule,
     ParticipatingRoleModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [
