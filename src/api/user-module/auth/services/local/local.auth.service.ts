@@ -7,23 +7,23 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PasswordManagerService } from 'src/shared/modules/password-manager/password-manager.service';
-import { JwtUtilsService } from 'src/shared/modules/jwt/jwt-utils.service';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { PasswordManagerService } from 'src/shared/shared-modules/password-manager/password-manager.service';
+import { JwtUtilsService } from 'src/shared/shared-modules/jwt/jwt-utils.service';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { UserService } from '../../../user/user.service';
 import { CreateUserBodyDto } from '../../dto/create.user.dto';
 import { LoginUserBodyDto } from '../../dto/login.user.dto';
 import { Role } from 'src/constants/enums/user.roles';
 import { JwtPayload } from 'src/constants/interfaces/jwt.payload';
 import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter';
-import { EmailService } from 'src/shared/modules/email/email.service';
-import { OtpService } from 'src/shared/modules/otp/otp.service';
+import { EmailService } from 'src/shared/shared-modules/email/email.service';
+import { OtpService } from 'src/shared/shared-modules/otp/otp.service';
 import { User } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SendOtpBodyDto } from '../../dto/send.otp.dto';
 import { ResetPassBodyDto, ResetPassDataDto } from '../../dto/reset.pass.dto';
 import { VerifyOtpBodyDto } from '../../dto/verify.otp.dto';
-import { EmailVerificationService } from 'src/shared/modules/email-verification/email-verification.service';
+import { EmailVerificationService } from 'src/shared/shared-modules/email-verification/email-verification.service';
 
 @Injectable()
 export class LocalAuthService {

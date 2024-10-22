@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InviteStatus, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { InvitationResponseBodyDto } from './dto/invitation.response.dto';
 
 @Injectable()

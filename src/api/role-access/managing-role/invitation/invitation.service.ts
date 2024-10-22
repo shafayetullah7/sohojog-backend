@@ -4,10 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { CreateInvitationBodyDto } from './dto/create.invitation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { EmailService } from 'src/shared/modules/email/email.service';
+import { EmailService } from 'src/shared/shared-modules/email/email.service';
 import { GetInvitationsQueryDto } from './dto/get.invitation.dto';
 import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';

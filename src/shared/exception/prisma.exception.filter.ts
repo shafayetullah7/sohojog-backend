@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 // import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
-import { ResponseBuilder } from '../modules/response-builder/response.builder';
+import { ResponseBuilder } from '../shared-modules/response-builder/response.builder';
 import { getNewId } from '../utils/uuid/getNewUuid';
 import { Prisma } from '@prisma/client';
 

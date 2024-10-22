@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create.user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter';
 
 @Injectable()

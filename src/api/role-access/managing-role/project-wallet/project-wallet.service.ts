@@ -7,7 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProjectWalletDto } from './dto/create.project.wallet';
 import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.helper';
 import { managerWalletHelper } from 'src/_helpers/access-helpers/manager-access/manager.wallet.helper';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { Wallet } from '@prisma/client';
 import { UpdateProjectWalletBodyDto } from './dto/update.project.wallet';
 

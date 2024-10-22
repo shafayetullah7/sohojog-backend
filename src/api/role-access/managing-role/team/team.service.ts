@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTeamBodyDto } from './dto/create.team.dto';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { UpdateTeamBodyDto } from './dto/update.team.dto';
 import { GetMyProjectTeamsQueryDto } from './dto/get.team.dto';
 import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.helper';

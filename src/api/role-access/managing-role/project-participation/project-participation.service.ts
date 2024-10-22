@@ -6,7 +6,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProjectParticipationQueryDto } from './dto/project.participation.query.dto';
 import { ParticipationStatus, Prisma } from '@prisma/client';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { ProjectParticipationUpdateDto } from './dto/project.participation.update.dto';
 import { managerParticipationHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.participation.helper';
 

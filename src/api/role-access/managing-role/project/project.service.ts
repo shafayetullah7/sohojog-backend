@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { CreateProjectBodyDto } from './dto/create.project.dto';
 import { GetMyProjectsQueryDto } from './dto/get.my.projets.dto';
 import { UpdateProjectBodyDto } from './dto/update.project.dto';

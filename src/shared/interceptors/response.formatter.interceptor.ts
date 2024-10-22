@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ResponseFormat } from '../modules/response-builder/response.interface';
-import { ResponseBuilder } from '../modules/response-builder/response.builder';
+import { ResponseFormat } from '../shared-modules/response-builder/response.interface';
+import { ResponseBuilder } from '../shared-modules/response-builder/response.builder';
 import {} from 'express';
 import { getNewId } from '../utils/uuid/getNewUuid';
 import { Request, Response } from 'express';

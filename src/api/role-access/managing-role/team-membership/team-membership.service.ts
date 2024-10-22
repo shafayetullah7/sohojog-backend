@@ -8,7 +8,7 @@ import { CreateTeamMembershipDto } from './dto/create.team.membership.dto';
 import { managerTeamHelper } from 'src/_helpers/access-helpers/manager-access/manager.team.helper';
 import { AddRoleToMemberDto } from './dto/add.member.role.dto';
 import { managerTeamMembershipHelpers } from 'src/_helpers/access-helpers/manager-access/manager.membership.helper';
-import { ResponseBuilder } from 'src/shared/modules/response-builder/response.builder';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { TeamMembershipQueryDto } from './dto/get.membership.dto';
 import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
