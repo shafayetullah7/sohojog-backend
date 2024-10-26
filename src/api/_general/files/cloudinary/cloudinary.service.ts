@@ -29,6 +29,16 @@ export class CloudinaryService {
     });
   }
 
+  async uploadMultipleFiles(files: Express.Multer.File[]): Promise<UploadApiResponse[]> {
+    const uploadPromises = files.map(file => this.uploadFile(file));
+    try {
+      const results = await Promise.all(uploadPromises);
+      return results;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to upload one or more files.');
+    }
+  }
+
   deleteFile(publicId: string): Promise<UploadApiResponse> {
     return cloudinary.uploader.destroy(publicId);
   }

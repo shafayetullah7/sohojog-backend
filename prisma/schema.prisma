@@ -216,13 +216,14 @@ model Participation {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
-  invitation     Invitation?      @relation(name: "invited_participation", fields: [invitationId], references: [id])
-  project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user           User             @relation("participation", fields: [userId], references: [id])
-  adminRole      ProjectAdmin[]
-  TeamMembership TeamMembership[]
-  TaskAssignment TaskAssignment[]
-  TaskSubmission TaskSubmission[]
+  invitation           Invitation?            @relation(name: "invited_participation", fields: [invitationId], references: [id])
+  project              Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user                 User                   @relation("participation", fields: [userId], references: [id])
+  adminRole            ProjectAdmin[]
+  TeamMembership       TeamMembership[]
+  TaskAssignment       TaskAssignment[]
+  TaskSubmission       TaskSubmission[]
+  assignmentSubmission assignmentSubmission[]
 
   @@unique([projectId, userId])
   @@map("participations")
@@ -470,13 +471,14 @@ model TaskBudgetTransaction {
 }
 
 model TaskAssignment {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   taskId          String
   participationId String?
-  assignedAt      DateTime
+  assignedAt      DateTime? @default(now())
 
-  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  participation Participation? @relation(fields: [participationId], references: [id], onDelete: SetNull)
+  task                 Task                   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  participation        Participation?         @relation(fields: [participationId], references: [id], onDelete: SetNull)
+  assignmentSubmission assignmentSubmission[]
 
   @@unique([taskId, participationId])
   @@map("team_task_assignment")
@@ -512,15 +514,30 @@ enum SubmissionStatus {
   REJECTED
 }
 
-model TaskSubmission {
-  id            String           @id @default(uuid())
-  taskId        String
-  submittedById String?
-  description   String           @db.Text
-  status        SubmissionStatus
+model assignmentSubmission {
+  id           String           @id @default(uuid())
+  assignmentId String
+  submittedBy  String?
+  description  String           @db.Text
+  status       SubmissionStatus
 
   // relations
-  submittedBy    Participation?   @relation(fields: [submittedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  Participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  SubmissionFile SubmissionFile[]
+  TaskAssignment TaskAssignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("task_assignment_submissions")
+}
+
+model TaskSubmission {
+  id          String           @id @default(uuid())
+  taskId      String
+  submittedBy String?
+  description String           @db.Text
+  status      SubmissionStatus
+
+  // relations
+  Participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
   SubmissionFile SubmissionFile[]
 
   @@map("task_submissions")
@@ -533,8 +550,10 @@ model SubmissionFile {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  taskSubmission TaskSubmission @relation(fields: [submissionId], references: [id])
-  file           File           @relation(fields: [fileId], references: [id])
+  taskSubmission         TaskSubmission        @relation(fields: [submissionId], references: [id])
+  file                   File                  @relation(fields: [fileId], references: [id])
+  assignmentSubmission   assignmentSubmission? @relation(fields: [assignmentSubmissionId], references: [id])
+  assignmentSubmissionId String?
 
   @@map("submission_files")
 }

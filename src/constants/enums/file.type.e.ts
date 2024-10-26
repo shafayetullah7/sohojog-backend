@@ -2,6 +2,7 @@ export const AllowedFiles = {
   JPG: 'jpg',
   JPEG: 'jpeg',
   PNG: 'png',
+  WEBP: 'webp',
   PDF: 'pdf',
   DOCX: 'docx',
   DOC: 'doc',
@@ -11,6 +12,6 @@ export const AllowedFiles = {
   XLSX: 'xlsx',
   CSV: 'csv',
   TXT: 'txt',
-} as const; 
+} as const;
 
 export type AllowedFileType = (typeof AllowedFiles)[keyof typeof AllowedFiles];

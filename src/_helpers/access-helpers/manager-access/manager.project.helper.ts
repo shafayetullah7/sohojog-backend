@@ -39,7 +39,13 @@ const getManagerProject = async (
     (participation) => participation.userId === userId,
   );
   if (!managerParticipation) return null;
-  const { user, adminRole, ...participation } = managerParticipation;
+  const {
+    user,
+    adminRole: adminRoles,
+    ...participation
+  } = managerParticipation;
+  const [adminRole] = adminRoles;
+  if (!adminRole) return null;
   const safeUser = getSafeUserInfo(user);
   return {
     project: rest,

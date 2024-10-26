@@ -1,30 +1,88 @@
-import { BadRequestException } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  FileInterceptor,
+  FilesInterceptor,
+  FileFieldsInterceptor,
+} from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import * as sharp from 'sharp';
 import { AllowedFileType } from 'src/constants/enums/file.type.e';
 
+@Injectable()
 export class FileHandler {
   // Extension to MIME type mapping
-  private static extensionMimeMap: { [key: string]: string } = {
+  static extensionMimeMap: { [key: string]: string } = {
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
     png: 'image/png',
+    webp: 'image/webp', // Added WebP MIME type
     pdf: 'application/pdf',
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     doc: 'application/msword',
     ppt: 'application/vnd.ms-powerpoint',
     pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    csv: 'text/csv',
+    txt: 'text/plain',
   };
 
-
-  static generateFileInterceptor(fileFieldName: string, allowedExtensions: AllowedFileType[], maxFileSize: number = 5000000) {
+  static generateFileInterceptor(
+    fileFieldName: string,
+    allowedExtensions: AllowedFileType[],
+    maxFileSize: number = 5000000,
+  ) {
     return FileInterceptor(fileFieldName, {
       storage: memoryStorage(), // Store in memory
       limits: {
         fileSize: maxFileSize,
       },
       fileFilter: (req, file, callback) => {
+        console.log('...', file);
+        const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
+        if (!fileExtension || !FileHandler.extensionMimeMap[fileExtension]) {
+          return callback(
+            new BadRequestException(`Unsupported file type: ${fileExtension}`),
+            false,
+          );
+        }
+
+        // Check if the file extension is in the allowed list
+        if (!allowedExtensions.includes(fileExtension as AllowedFileType)) {
+          return callback(
+            new BadRequestException(
+              `File extension not allowed: ${fileExtension}. Allowed: ${allowedExtensions.join(', ')}`,
+            ),
+            false,
+          );
+        }
+
+        // Validate MIME type
+        if (file.mimetype !== FileHandler.extensionMimeMap[fileExtension]) {
+          return callback(
+            new BadRequestException('Invalid MIME type for the file extension'),
+            false,
+          );
+        }
+
+        callback(null, true); // File is valid
+      },
+    });
+  }
+
+  static generateMultipleFilesInterceptor(
+    fileFieldName: string,
+    allowedExtensions: AllowedFileType[],
+    maxFileSize: number = 5000000,
+    maxFiles: number = 10, // Max number of files allowed
+  ) {
+    return FilesInterceptor(fileFieldName, maxFiles, {
+      storage: memoryStorage(), // Store in memory
+      limits: {
+        fileSize: maxFileSize,
+      },
+      fileFilter: (req, file, callback) => {
+        console.log('...', file);
         const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
         if (!fileExtension || !FileHandler.extensionMimeMap[fileExtension]) {
           return callback(
@@ -57,7 +115,11 @@ export class FileHandler {
   }
 
   // Multer configuration for multiple file uploads with fields
-  static generateFileFieldsInterceptor(fieldNames: { name: string; maxCount?: number }[], allowedExtensions: AllowedFileType[], maxFileSize: number = 5000000) {
+  static generateFileFieldsInterceptor(
+    fieldNames: { name: string; maxCount?: number }[],
+    allowedExtensions: AllowedFileType[],
+    maxFileSize: number = 5000000,
+  ) {
     return FileFieldsInterceptor(fieldNames, {
       storage: memoryStorage(), // Store in memory
       limits: {
@@ -96,7 +158,10 @@ export class FileHandler {
   }
 
   // Function to compress and convert an image to WebP format without losing much quality
-  static async compressAndConvertToWebP(fileBuffer: Buffer, quality: number = 90): Promise<Buffer> {
+  static async compressAndConvertToWebP(
+    fileBuffer: Buffer,
+    quality: number = 90,
+  ): Promise<Buffer> {
     return await sharp(fileBuffer)
       .webp({ quality }) // Convert to WebP with high quality
       .toBuffer();
