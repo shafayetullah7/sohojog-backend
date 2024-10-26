@@ -13,6 +13,13 @@ export const queryTaskSchema = z.object({
   // Date range filters (optional)
   dueDateFrom: z.string().date().optional(),
   dueDateTo: z.string().date().optional(),
+  dueDate: z.string().date().optional(),
+  // month: z
+  //   .preprocess((data) => Number(data), z.number().min(0).max(11))
+  //   .optional(),
+  // year: z
+  //   .preprocess((data) => Number(data), z.number().min(2000).max(3000))
+  //   .optional(),
 
   // Sorting (optional)
   sortBy: z

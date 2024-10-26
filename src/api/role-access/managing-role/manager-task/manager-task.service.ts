@@ -6,11 +6,12 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTaskDto } from './dto/create.task.dto';
 import { FileService } from 'src/shared/shared-modules/file/file.service';
-import { Task } from '@prisma/client';
+import { Prisma, Task } from '@prisma/client';
 import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.helper';
 import { UploadApiResponse } from 'cloudinary';
 import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { QueryTaskDto } from './dto/query.task.dto';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class ManagerTaskService {
@@ -138,9 +139,9 @@ export class ManagerTaskService {
       .setData(result);
   }
 
-  async getTasks(query: QueryTaskDto) {
+  async getTasks(userId: string, query: QueryTaskDto) {
     const {
-      id, // Add id to query
+      id,
       title,
       status,
       priority,
@@ -148,85 +149,103 @@ export class ManagerTaskService {
       taskAssignmentType,
       dueDateFrom,
       dueDateTo,
-      sortBy, // Default sorting by createdAt
-      sortOrder,
-      page,
-      limit,
-      assignmentLimit, // Limit the number of task assignments fetched
+      sortBy = 'createdAt',
+      sortOrder = 'asc',
+      page = 1,
+      limit = 10,
+      assignmentLimit,
+      dueDate,
     } = query;
 
-    // Calculate pagination values
     const skip = (page - 1) * limit;
     const take = limit;
 
-    // Build the dynamic Prisma query
-    const where: any = {};
+    const prismaQuery: Prisma.TaskWhereInput = {
+      AND: [
+        id ? { id } : {},
+        title ? { title: { contains: title, mode: 'insensitive' } } : {},
+        status ? { status } : {},
+        priority ? { priority } : {},
+        projectId ? { projectId } : {},
+        taskAssignmentType ? { taskAssignmentType } : {},
+        dueDate
+          ? {
+              dueDate: {
+                gte: dayjs(dueDate).startOf('day').toDate(),
+                lte: dayjs(dueDate).endOf('day').toDate(),
+              },
+            }
+          : {},
+        dueDateTo ? { dueDate: { lte: new Date(dueDateTo) } } : {},
+        dueDateFrom ? { dueDate: { gte: new Date(dueDateFrom) } } : {},
+      ],
+      Project: {
+        creatorId: userId,
+      },
+    };
 
-    // Add filters if they exist
-    if (id) {
-      where.id = id; // Query by exact id
-    }
-    if (title) {
-      where.title = { contains: title, mode: 'insensitive' }; // Partial case-insensitive match on title
-    }
-    if (status) {
-      where.status = status;
-    }
-    if (priority) {
-      where.priority = priority;
-    }
-    if (projectId) {
-      where.projectId = projectId;
-    }
-    if (taskAssignmentType) {
-      where.taskAssignmentType = taskAssignmentType;
-    }
-
-    // Filter by date range if provided
-    if (dueDateFrom || dueDateTo) {
-      where.dueDate = {
-        gte: dueDateFrom ? new Date(dueDateFrom) : undefined,
-        lte: dueDateTo ? new Date(dueDateTo) : undefined,
-      };
-    }
-
-    // Fetch tasks from Prisma with dynamic filtering, sorting, and pagination
     const tasks = await this.prisma.task.findMany({
-      where,
+      where: prismaQuery,
       orderBy: {
         [sortBy]: sortOrder,
       },
       skip,
       take,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        priority: true,
+        dueDate: true,
+        projectId: true,
         _count: {
           select: {
-            TeamTaskAssignment: true, // Count the number of assigned teams
-            TaskAssignment: true, // Count the number of task assignments
+            TeamTaskAssignment: true,
+            TaskAssignment: true,
           },
         },
         TaskAssignment: {
-          take: assignmentLimit, // Limit the number of task assignments fetched
-          include: {
-            participation: true, // Include participation details (or adjust as needed)
+          take: assignmentLimit,
+          select: {
+            id: true,
+            participation: {
+              select: {
+                id: true,
+                role: true,
+                status: true,
+                user: {
+                  select: {
+                    name: true,
+                    ProfilePictureImage: {
+                      select: {
+                        id: true,
+                        midUrl: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
     });
 
-    // If no tasks found, you can optionally throw an exception
-    if (!tasks.length) {
-      throw new NotFoundException('No tasks found.');
-    }
+    const totalRecords = await this.prisma.task.count({ where: prismaQuery });
 
-    // Return the tasks with the added data
-    return {
+    const result = {
       tasks,
       pagination: {
         page,
         limit,
-        total: await this.prisma.task.count({ where }),
+        total: totalRecords,
+        currentPage: page,
       },
     };
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Tasks retreived')
+      .setData(result);
   }
 }

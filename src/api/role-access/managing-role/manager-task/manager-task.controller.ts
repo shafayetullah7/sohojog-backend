@@ -3,18 +3,17 @@ import {
   Body,
   ConflictException,
   Controller,
+  Get,
   NotFoundException,
   Post,
-  UploadedFile,
+  Query,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ManagerTaskService } from './manager-task.service';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { FileHandler } from 'src/shared/shared-modules/file/file.handler';
 import { CloudinaryService } from 'src/shared/shared-modules/file/cloudinary.service';
-import { NotFoundError } from 'rxjs';
 import { ZodValidation } from 'src/shared/custom-decorator/zod.validation.decorator';
 import { CreateTaskDto, createTaskSchema } from './dto/create.task.dto';
 import { FileService } from 'src/shared/shared-modules/file/file.service';
@@ -26,6 +25,7 @@ import { TokenValidationGuard } from 'src/shared/guards/token.validation.guard';
 import { RolesGuard } from 'src/shared/guards/roles.guard';
 import { User } from 'src/shared/custom-decorator/user.decorator';
 import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
+import { QueryTaskDto, queryTaskSchema } from './dto/query.task.dto';
 
 @Controller('manager/tasks')
 export class ManagerTaskController {
@@ -86,5 +86,16 @@ export class ManagerTaskController {
       //   'Failed to create task. Files have been deleted.',
       // );
     }
+  }
+
+  @Get()
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async getTasks(
+    @Query(ZodValidation(queryTaskSchema)) query: QueryTaskDto,
+    @User() user: JwtUser,
+  ) {
+    const result = await this.managerTaskService.getTasks(user.userId, query);
+    return result;
   }
 }
