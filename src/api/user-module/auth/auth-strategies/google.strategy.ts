@@ -45,7 +45,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
       hasPassword: false,
       verified: true,
     };
-    if (photo) data.profilePicture = photo.value;
+    // if (photo) data.profilePicture = photo.value;
     // console.log(profile);
     // console.log(accessToken);
     // console.log(refreshToken);

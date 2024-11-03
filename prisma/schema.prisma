@@ -95,17 +95,17 @@ model User {
   updatedAt         DateTime @updatedAt
 
   googleId            String?
-  profilePicture      String?
+  profilePictureId    String?
   googleEmailVerified Boolean?
   googleProfileUrl    String?
 
-  projectStakes       ProjectStakeholder[]
-  ProfilePictureImage Image?               @relation(fields: [profilePicture], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  Invitations         Invitation[]
-  UploadedImages      Image[]              @relation("uploadedImages")
-  Participations      Participation[]      @relation("participation")
-  CreatedProjects     Project[]            @relation("project_creator")
-  UploadedFiles       File[]
+  projectStakes   ProjectStakeholder[]
+  profilePicture  Image?               @relation(fields: [profilePictureId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  invitations     Invitation[]
+  uploadedImages  Image[]              @relation("uploadedImages")
+  participations  Participation[]      @relation("participation")
+  createdProjects Project[]            @relation("project_creator")
+  uploadedFiles   File[]
 
   @@unique([googleId, id])
   @@map("users")
@@ -140,13 +140,13 @@ model Project {
   updatedAt DateTime @updatedAt
 
   tags           String[]
+  wallet         Wallet?
   stakeholders   ProjectStakeholder[]
   invitations    Invitation[]
   participations Participation[]
   teams          Team[]
   creator        User                 @relation(name: "project_creator", fields: [creatorId], references: [id])
-  wallet         Wallet[]
-  Task           Task[]
+  tasks          Task[]
 
   @@unique([creatorId, title])
   @@map("projects")
@@ -159,11 +159,11 @@ model ProjectAdmin {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  participation      Participation        @relation(fields: [participationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  WalletTransaction  WalletTransaction[]
+  participation       Participation        @relation(fields: [participationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  walletTransactions  WalletTransaction[]
   // Task              Task[]
-  ManagerTasks       ManagerTasks[]
-  TeamTaskAssignment TeamTaskAssignment[]
+  managerTasks        ManagerTasks[]
+  teamTaskAssignments TeamTaskAssignment[]
 
   @@map("project_admins")
 }
@@ -221,10 +221,10 @@ model Participation {
   project              Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user                 User                   @relation("participation", fields: [userId], references: [id])
   adminRole            ProjectAdmin[]
-  TeamMembership       TeamMembership[]
-  TaskAssignment       TaskAssignment[]
-  TaskSubmission       TaskSubmission[]
-  assignmentSubmission assignmentSubmission[]
+  teamMemberships       TeamMembership[]
+  taskAssignments       TaskAssignment[]
+  taskSubmissions       TaskSubmission[]
+  assignmentSubmissions assignmentSubmission[]
 
   @@unique([projectId, userId])
   @@map("participations")
@@ -241,8 +241,8 @@ model Team {
   responsibilities   String[]
   project            Project              @relation(fields: [projectId], references: [id])
   memberShips        TeamMembership[]
-  TeamWallet         TeamWallet?
-  TeamTaskAssignment TeamTaskAssignment[]
+  teamWallet         TeamWallet?
+  teamTaskAssignments TeamTaskAssignment[]
 
   @@unique([projectId, name])
   @@map("teams")
@@ -273,7 +273,7 @@ model TeamLeader {
 
   // Relations
   membership      TeamMembership    @relation(fields: [membershipId], references: [id])
-  TeamLeaderTasks TeamLeaderTasks[]
+  teamLeaderTasks TeamLeaderTasks[]
 
   @@map("team_leaders")
 }
@@ -329,7 +329,7 @@ model WalletTransaction {
   // Relations
   wallet          Wallet            @relation(fields: [walletId], references: [id])
   transactionBy   ProjectAdmin      @relation(fields: [transactionById], references: [id])
-  TeamTransaction TeamTransaction[]
+  teamTransactions TeamTransaction[]
 
   @@map("wallet_transactions")
 }
@@ -409,14 +409,14 @@ model Task {
   updatedAt          DateTime           @updatedAt
 
   // Relations
-  Project            Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project            Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
   // TaskAssignment TaskAssignment[]
-  ManagerTasks       ManagerTasks?
-  TeamLeaderTasks    TeamLeaderTasks?
+  managerTasks       ManagerTasks?
+  teamLeaderTasks    TeamLeaderTasks?
   budgetTransactions TaskBudgetTransaction[]
-  TaskAssignment     TaskAssignment[]
-  TeamTaskAssignment TeamTaskAssignment[]
-  TaskAttachments    TaskAttachments[]
+  taskAssignment     TaskAssignment[]
+  teamTaskAssignment TeamTaskAssignment[]
+  taskAttachments    TaskAttachments[]
 
   @@unique([projectId, title])
   @@map("tasks")
@@ -523,9 +523,9 @@ model assignmentSubmission {
   status       SubmissionStatus
 
   // relations
-  Participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  SubmissionFile SubmissionFile[]
-  TaskAssignment TaskAssignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  submissionFile SubmissionFile[]
+  taskAssignment TaskAssignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("task_assignment_submissions")
 }
@@ -538,8 +538,8 @@ model TaskSubmission {
   status      SubmissionStatus
 
   // relations
-  Participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  SubmissionFile SubmissionFile[]
+  participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  submissionFiles SubmissionFile[]
 
   @@map("task_submissions")
 }
@@ -591,8 +591,8 @@ model File {
 
   // Relations
   uploader        User?             @relation(fields: [uploadBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  SubmissionFile  SubmissionFile[]
-  TaskAttachments TaskAttachments[]
+  submissionFile  SubmissionFile[]
+  taskAttachments TaskAttachments[]
 
   @@map("files")
 }
@@ -612,7 +612,7 @@ model Image {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  User      User[]
+  user      User[]
 
   @@map("images")
 }

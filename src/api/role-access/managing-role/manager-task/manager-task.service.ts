@@ -83,15 +83,15 @@ export class ManagerTaskService {
           data: {
             ...taksData,
             createdBy: userId,
-            ManagerTasks: { create: { adminId: userId } },
-            TaskAssignment: {
+            managerTasks: { create: { adminId: userId } },
+            taskAssignment: {
               createMany: {
                 data: participationIds.map((id) => ({
                   participationId: id,
                 })),
               },
             },
-            TeamTaskAssignment: {
+            teamTaskAssignment: {
               createMany: {
                 data: teamIds.map((id) => ({
                   teamId: id,
@@ -179,7 +179,7 @@ export class ManagerTaskService {
         dueDateTo ? { dueDate: { lte: new Date(dueDateTo) } } : {},
         dueDateFrom ? { dueDate: { gte: new Date(dueDateFrom) } } : {},
       ],
-      Project: {
+      project: {
         creatorId: userId,
       },
     };
@@ -200,11 +200,11 @@ export class ManagerTaskService {
         projectId: true,
         _count: {
           select: {
-            TeamTaskAssignment: true,
-            TaskAssignment: true,
+            teamTaskAssignment: true,
+            taskAssignment: true,
           },
         },
-        TaskAssignment: {
+        taskAssignment: {
           take: assignmentLimit,
           select: {
             id: true,
@@ -216,7 +216,7 @@ export class ManagerTaskService {
                 user: {
                   select: {
                     name: true,
-                    ProfilePictureImage: {
+                    profilePicture: {
                       select: {
                         id: true,
                         midUrl: true,

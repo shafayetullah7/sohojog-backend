@@ -91,9 +91,16 @@ export class ProjectService {
           select: {
             participations: true,
             stakeholders: true,
-            Task: true,
+            tasks: true,
             invitations: true,
             teams: true,
+          },
+        },
+        participations: {
+          take: 5,
+          select: {
+            id: true,
+            // user:
           },
         },
       },

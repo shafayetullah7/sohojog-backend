@@ -45,7 +45,7 @@ const getManagerTeamWallet = async (
   if (!managerTeamWallet) return managerTeamWallet;
   const { team: teamData, ...teamWallet } = managerTeamWallet;
   const { project: projectData, ...team } = teamData;
-  const { participations, wallet: projectWallets, ...project } = projectData;
+  const { participations, wallet: projectWallet, ...project } = projectData;
   const managerParticipation = participations.find(
     (participation) => participation.userId === userId,
   );
@@ -55,7 +55,7 @@ const getManagerTeamWallet = async (
   // const projectWallet = projectWallets
   return {
     project,
-    projectWallets,
+    projectWallet,
     team,
     teamWallet,
     manager: { user: getSafeUserInfo(user), adminRole, participation },

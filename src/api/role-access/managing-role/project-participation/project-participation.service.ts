@@ -64,7 +64,7 @@ export class ProjectParticipationService {
           select: {
             id: true,
             name: true,
-            image: true,
+            profilePicture: true,
           },
         },
         project: {

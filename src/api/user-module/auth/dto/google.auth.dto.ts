@@ -5,7 +5,7 @@ export const CreateUserWithGoogleSchema = z
     email: z.string().email(),
     name: z.string(),
     googleId: z.string(),
-    profilePicture: z.string().url().optional(),
+    // profilePicture: z.string().url().optional(),
     googleEmailVerified: z.boolean(),
     hasPassword: z.boolean().default(false),
     verified: z.boolean().default(true),

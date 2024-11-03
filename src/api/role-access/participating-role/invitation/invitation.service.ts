@@ -41,7 +41,7 @@ export class InvitationService {
           select: {
             email: true,
             id: true,
-            image: true,
+            profilePicture: true,
             name: true,
           },
         },

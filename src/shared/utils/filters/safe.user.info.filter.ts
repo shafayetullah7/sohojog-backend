@@ -6,7 +6,7 @@ export interface SafeUserInfo {
   name: string;
   verified: boolean;
   passwordChangedAt: Date;
-  profilePicture?: string | null;
+  profilePictureId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,7 +18,7 @@ export const getSafeUserInfo = (user: User): SafeUserInfo => {
     name: user.name,
     verified: user.verified,
     passwordChangedAt: user.passwordChangedAt,
-    profilePicture: user.profilePicture,
+    profilePictureId: user.profilePictureId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

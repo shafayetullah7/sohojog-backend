@@ -30,14 +30,13 @@ export class TeamWalletTransactionService {
     if (!managerTeamWallet) {
       throw new NotFoundException('Team Wallet not found');
     }
-    const { teamWallet, project, projectWallets, manager, team } =
+    const { teamWallet, project, projectWallet, manager, team } =
       managerTeamWallet;
     const projectId = project.id;
 
-    if (!projectWallets.length) {
+    if (!projectWallet) {
       throw new NotFoundException('Project Wallet not found');
     }
-    const [projectWallet] = projectWallets;
 
     if (projectWallet.balance < amount) {
       throw new BadRequestException('Insufficient funds in the project wallet');
@@ -106,15 +105,13 @@ export class TeamWalletTransactionService {
       throw new NotFoundException('Team Wallet not found');
     }
 
-    const { teamWallet, project, projectWallets, manager, team } =
+    const { teamWallet, project, projectWallet, manager, team } =
       managerTeamWallet;
     const projectId = project.id;
 
-    if (!projectWallets.length) {
+    if (!projectWallet) {
       throw new NotFoundException('Project Wallet not found');
     }
-
-    const [projectWallet] = projectWallets;
 
     if (teamWallet.balance < amount) {
       throw new BadRequestException('Insufficient funds in the team wallet');
