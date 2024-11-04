@@ -8,8 +8,15 @@ export const createUserBodySchema = z
         required_error: 'Name is required',
         invalid_type_error: 'Name must be string',
       })
+      .trim()
       .min(1, 'Name is required')
-      .max(200, 'Name cannot exceed 200 characters'),
+      .max(200, 'Name cannot exceed 200 characters')
+      .transform((str) =>
+        str
+          .split(' ')
+          .filter((str) => str.length)
+          .join(' '),
+      ),
 
     email: z
       .string()

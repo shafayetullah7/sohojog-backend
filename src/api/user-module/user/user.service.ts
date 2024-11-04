@@ -2,7 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create.user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
-import { getSafeUserInfo } from 'src/shared/utils/filters/safe.user.info.filter';
+import {
+  getSafeUserInfo,
+  SafeUserInfo,
+} from 'src/shared/utils/filters/safe.user.info.filter';
+import { User } from '@prisma/client';
+import { UpdateUserDto } from './dto/user.update.dto';
 
 @Injectable()
 export class UserService {
@@ -24,8 +29,11 @@ export class UserService {
     return user;
   }
 
-  async getMe(id: string) {
-    const user = await this.prismaService.user.findUnique({ where: { id } });
+  async getMe(id: string): Promise<ResponseBuilder<SafeUserInfo>> {
+    const user = await this.prismaService.user.findUnique({
+      where: { id },
+      include: { profilePicture: true },
+    });
 
     if (!user) {
       throw new NotFoundException('User not found.');
@@ -34,7 +42,34 @@ export class UserService {
     const safeUser = getSafeUserInfo(user);
 
     return this.response
+      .setSuccess(true)
       .setData({ user: safeUser })
       .setMessage('User retreived.');
   }
+
+  async updateUser(userId: string, updateUserDto: UpdateUserDto) {
+    // Check if the user exists
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Update only the name
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { name: updateUserDto.name },
+      include: {
+        profilePicture: true,
+      },
+    });
+    const safeUser = getSafeUserInfo(updatedUser);
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('User updated successfully')
+      .setData(safeUser);
+  };
 }

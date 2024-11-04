@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   NotFoundException,
+  Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -17,6 +19,9 @@ import { Role } from 'src/constants/enums/user.roles';
 import { Request } from 'express';
 import { RolesGuard } from 'src/shared/guards/roles.guard';
 import { TokenValidationGuard } from 'src/shared/guards/token.validation.guard';
+import { UpdateUserDto, updateUserSchema } from './dto/user.update.dto';
+import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
+import { User } from 'src/shared/custom-decorator/user.decorator';
 
 @Controller('user')
 export class UserController {
@@ -51,5 +56,17 @@ export class UserController {
 
     const result = await this.userService.getMe(user.userId);
     return result;
+  }
+
+  @Patch('')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async updateUser(
+    @Body(ZodValidation(updateUserSchema)) body: UpdateUserDto,
+    @User() user: JwtUser,
+  ) {
+    const updatedUser = await this.userService.updateUser(user.userId, body);
+
+    return updatedUser;
   }
 }

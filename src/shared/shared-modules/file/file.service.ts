@@ -1,8 +1,12 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UploadApiResponse } from 'cloudinary';
 import { Express } from 'express';
-import { File, FileType, Prisma } from '@prisma/client';
+import { File, FileType, Image, Prisma } from '@prisma/client';
 import { CloudinaryService } from './cloudinary.service';
 import { getFileType } from 'src/shared/utils/functions/getFileType';
 
@@ -186,5 +190,124 @@ export class FileService {
     }
   }
 
-  
+  async uploadSingleImageAndInsert(
+    file: Express.Multer.File,
+    uploadBy: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<Image> {
+    try {
+      // Validate that the file is an image
+      if (!file || !file.mimetype.startsWith('image/')) {
+        throw new BadRequestException('The uploaded file must be an image.');
+      }
+
+      // Upload file to Cloudinary with transformations for different sizes and formats, including quality optimization
+      const uploadResults = await this.cloudinaryService.uploadImage(file);
+
+      // Insert image record into the database
+      const prismaClient = transaction || this.prisma;
+      const imageRecord = await prismaClient.image.create({
+        data: {
+          minUrl: uploadResults[0].secure_url, // Thumbnail URL
+          midUrl: uploadResults[1].secure_url, // Medium URL
+          fullUrl: uploadResults[2].secure_url, // Full size URL
+          minPublicId: uploadResults[0].public_id, // Thumbnail public ID
+          midPublicId: uploadResults[1].public_id, // Medium public ID
+          maxPublicId: uploadResults[2].public_id, // Full public ID
+          uploadBy,
+        },
+      });
+
+      return imageRecord;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to upload image and insert record into the database',
+        error.message,
+      );
+    }
+  }
+
+  async uploadMultipleImagesAndInsert(
+    files: Express.Multer.File[],
+    uploadBy?: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<Image[]> {
+    const prismaClient = transaction || this.prisma;
+
+    try {
+      // Validate that all files are images
+      for (const file of files) {
+        if (!file || !file.mimetype.startsWith('image/')) {
+          throw new BadRequestException('All uploaded files must be images.');
+        }
+      }
+
+      // Create an array of promises for uploading and inserting each image
+      const imageInsertPromises = files.map(async (file) => {
+        const uploadResults = await this.cloudinaryService.uploadImage(file);
+
+        // Insert image record into the database
+        return prismaClient.image.create({
+          data: {
+            minUrl: uploadResults[0].secure_url, // Thumbnail URL
+            midUrl: uploadResults[1].secure_url, // Medium URL
+            fullUrl: uploadResults[2].secure_url, // Full size URL
+            minPublicId: uploadResults[0].public_id, // Thumbnail public ID
+            midPublicId: uploadResults[1].public_id, // Medium public ID
+            maxPublicId: uploadResults[2].public_id, // Full public ID
+            uploadBy,
+          },
+        });
+      });
+
+      // Wait for all promises to resolve
+      const imageRecords = await Promise.all(imageInsertPromises);
+
+      return imageRecords; // Return all inserted image records
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to upload images and insert records into the database',
+        error.message,
+      );
+    }
+  }
+
+  async deleteImagesAndRecord(
+    imageId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const prismaClient = transaction || this.prisma; // Use the provided transaction or the default Prisma client
+
+    try {
+      // Step 1: Retrieve the image record from the database
+      const imageRecord = await prismaClient.image.findUnique({
+        where: { id: imageId },
+      });
+
+      if (!imageRecord) {
+        throw new InternalServerErrorException('Image record not found.');
+      }
+
+      // Step 2: Extract public IDs from the image record
+      const publicIds = [
+        imageRecord.minPublicId,
+        imageRecord.midPublicId,
+        imageRecord.maxPublicId,
+      ].filter(Boolean); // Filter out any undefined public IDs
+
+      // Step 3: Delete images from Cloudinary
+      if (publicIds.length) {
+        await this.deleteMultipleFiles(publicIds as string[]);
+      }
+      // Step 4: Delete the image record from the database
+      await prismaClient.image.delete({
+        where: { id: imageId },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to delete images and record.',
+        error.message,
+      );
+    }
+  }
 }

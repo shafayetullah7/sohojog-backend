@@ -113,4 +113,83 @@ export class CloudinaryService {
   deleteFile(publicId: string): Promise<UploadApiResponse> {
     return cloudinary.uploader.destroy(publicId);
   }
+
+  async uploadImage(file: Express.Multer.File): Promise<UploadApiResponse[]> {
+    // Validate if the file is an image
+    const validImageTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/jpg',
+    ];
+    if (!validImageTypes.includes(file.mimetype)) {
+      throw new InternalServerErrorException(
+        'Invalid file type. Please upload a valid image.',
+      );
+    }
+
+    // Create a transformation array for Cloudinary upload
+    const transformations = [
+      {
+        width: 150,
+        height: 150,
+        crop: 'fit',
+        format: 'webp',
+        quality: 'auto:good',
+      }, // Thumbnail
+      {
+        width: 600,
+        height: 600,
+        crop: 'fit',
+        format: 'webp',
+        quality: 'auto:good',
+      }, // Medium
+      {
+        width: 1200,
+        height: 1200,
+        crop: 'fit',
+        format: 'webp',
+        quality: 'auto:good',
+      }, // Full size
+    ];
+
+    try {
+      const uploadResults: UploadApiResponse[] = await Promise.all(
+        transformations.map(async (transformation) => {
+          return new Promise<UploadApiResponse>((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              { resource_type: 'image', ...transformation },
+              (error, result) => {
+                if (error) {
+                  return reject(
+                    new InternalServerErrorException(
+                      'Error uploading file to Cloudinary',
+                      error.message,
+                    ),
+                  );
+                }
+                if (result) {
+                  resolve(result); // Ensure result is defined before resolving
+                } else {
+                  reject(
+                    new InternalServerErrorException(
+                      'Upload returned no result.',
+                    ),
+                  );
+                }
+              },
+            );
+            uploadStream.end(file.buffer); // Ensure we pass the file buffer to the upload stream
+          });
+        }),
+      );
+
+      return uploadResults; // Return all upload results
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to upload image to Cloudinary',
+        error.message,
+      );
+    }
+  }
 }

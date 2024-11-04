@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { Image, User } from '@prisma/client';
 
 export interface SafeUserInfo {
   id: string;
@@ -7,11 +7,14 @@ export interface SafeUserInfo {
   verified: boolean;
   passwordChangedAt: Date;
   profilePictureId?: string | null;
+  profilePicture?: Image | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export const getSafeUserInfo = (user: User): SafeUserInfo => {
+export const getSafeUserInfo = (
+  user: User & { profilePicture?: Image | null },
+): SafeUserInfo => {
   return {
     id: user.id,
     email: user.email,
@@ -19,6 +22,7 @@ export const getSafeUserInfo = (user: User): SafeUserInfo => {
     verified: user.verified,
     passwordChangedAt: user.passwordChangedAt,
     profilePictureId: user.profilePictureId,
+    profilePicture: user.profilePicture,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
