@@ -83,33 +83,87 @@ export class ProjectService {
   }
 
   async getMyProjects(userId: string, query: GetMyProjectsQueryDto) {
-    // const { searchKey, tagId, ...restQuery } = query;
-    const projects = await this.prisma.project.findMany({
+    // Fetch projects and tasks counts in a single query using a raw query
+    const projectsWithTaskCounts = await this.prisma.project.findMany({
       where: { ...query, creatorId: userId },
       include: {
         _count: {
           select: {
             participations: true,
             stakeholders: true,
-            tasks: true,
             invitations: true,
             teams: true,
           },
         },
         participations: {
-          take: 5,
+          take: 4,
+          orderBy: {
+            createdAt: 'desc',
+          },
           select: {
             id: true,
-            // user:
+            user: {
+              select: {
+                id: true,
+                name: true,
+                profilePicture: {
+                  select: {
+                    minUrl: true,
+                    midUrl: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
     });
+  
+    // Get task counts grouped by project in a single query
+    const taskCounts = await this.prisma.task.groupBy({
+      by: ['projectId', 'status'],
+      _count: {
+        status: true,
+      },
+      where: {
+        projectId: {
+          in: projectsWithTaskCounts.map(project => project.id), // Filter tasks for fetched projects
+        },
+      },
+    });
+  
+    // Prepare a map for easy access to task counts by projectId
+    const taskCountsMap = taskCounts.reduce((acc, { projectId, status, _count }) => {
+      acc[projectId] = acc[projectId] || { total: 0, todo: 0, done: 0 };
+      acc[projectId].total += _count.status;
+      if (status === 'TODO') {
+        acc[projectId].todo = _count.status;
+      } else if (status === 'DONE') {
+        acc[projectId].done = _count.status;
+      }
+      return acc;
+    }, {});
+  
+    // Enrich projects with task counts
+    const enrichedProjects = projectsWithTaskCounts.map(project => {
+      const taskCount = taskCountsMap[project.id] || { total: 0, todo: 0, done: 0 };
+      return {
+        ...project,
+        description: project.description?.length
+          ? project.description.length > 150
+            ? `${project.description.substring(0, 150)}...`
+            : project.description
+          : project.description,
+        taskCounts: taskCount,
+      };
+    });
+  
     return this.response
       .setSuccess(true)
       .setMessage('Projects retrieved.')
-      .setData({ projects });
+      .setData({ projects: enrichedProjects });
   }
+  
 
   async updateProject(
     userId: string,
