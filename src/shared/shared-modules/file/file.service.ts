@@ -220,10 +220,12 @@ export class FileService {
 
       return imageRecord;
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Failed to upload image and insert record into the database',
-        error.message,
-      );
+      // console.log()
+      // throw new InternalServerErrorException(
+      //   'Failed to upload image and insert record into the database',
+      //   error.message,
+      // );
+      throw error;
     }
   }
 
@@ -276,7 +278,7 @@ export class FileService {
     imageId: string,
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
-    const prismaClient = transaction || this.prisma; // Use the provided transaction or the default Prisma client
+    const prismaClient = transaction || this.prisma;
 
     try {
       // Step 1: Retrieve the image record from the database
@@ -285,25 +287,34 @@ export class FileService {
       });
 
       if (!imageRecord) {
-        throw new InternalServerErrorException('Image record not found.');
+        console.log('Image record not found. to delete');
+        return;
+        // throw new InternalServerErrorException('Image record not found.');
       }
 
-      // Step 2: Extract public IDs from the image record
+      await prismaClient.image.delete({
+        where: { id: imageId },
+      });
+
       const publicIds = [
         imageRecord.minPublicId,
         imageRecord.midPublicId,
         imageRecord.maxPublicId,
-      ].filter(Boolean); // Filter out any undefined public IDs
+      ].filter((data) => !!data);
 
-      // Step 3: Delete images from Cloudinary
-      if (publicIds.length) {
-        await this.deleteMultipleFiles(publicIds as string[]);
+      try {
+        if (publicIds?.length) {
+          await this.cloudinaryService.deleteMultipleFiles(
+            publicIds as string[],
+          );
+          console.log('Image deleted', publicIds);
+          // await this.deleteMultipleFiles(publicIds as string[]);
+        }
+      } catch (error) {
+        console.log('Failed to delete image', publicIds, error);
       }
-      // Step 4: Delete the image record from the database
-      await prismaClient.image.delete({
-        where: { id: imageId },
-      });
     } catch (error) {
+      console.log(error);
       throw new InternalServerErrorException(
         'Failed to delete images and record.',
         error.message,

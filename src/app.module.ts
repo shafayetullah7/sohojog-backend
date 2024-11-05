@@ -22,7 +22,6 @@ import { UserModule } from './api/user-module/user/user.module';
 import { LeadingRoleModule } from './api/role-access/leading-role/leading-role.module';
 import { ManagingRoleModule } from './api/role-access/managing-role/managing-role.module';
 import { ParticipatingRoleModule } from './api/role-access/participating-role/participating-role.module';
-import { FilesModule } from './api/_general/files/files.module';
 import { FileModule } from './shared/shared-modules/file/file.module';
 
 @Module({
@@ -45,7 +44,6 @@ import { FileModule } from './shared/shared-modules/file/file.module';
     LeadingRoleModule,
     ManagingRoleModule,
     ParticipatingRoleModule,
-    FilesModule,
     FileModule,
   ],
   controllers: [AppController],

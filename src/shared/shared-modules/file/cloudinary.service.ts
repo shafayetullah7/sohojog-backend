@@ -131,22 +131,22 @@ export class CloudinaryService {
     // Create a transformation array for Cloudinary upload
     const transformations = [
       {
-        width: 150,
-        height: 150,
+        width: 90,
+        height: 90,
         crop: 'fit',
         format: 'webp',
         quality: 'auto:good',
       }, // Thumbnail
       {
-        width: 600,
-        height: 600,
+        width: 450,
+        height: 450,
         crop: 'fit',
         format: 'webp',
         quality: 'auto:good',
       }, // Medium
       {
-        width: 1200,
-        height: 1200,
+        width: 900,
+        height: 900,
         crop: 'fit',
         format: 'webp',
         quality: 'auto:good',

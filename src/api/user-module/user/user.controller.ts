@@ -7,7 +7,9 @@ import {
   Patch,
   Post,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, createUserSchema } from './dto/create.user.dto';
@@ -22,6 +24,7 @@ import { TokenValidationGuard } from 'src/shared/guards/token.validation.guard';
 import { UpdateUserDto, updateUserSchema } from './dto/user.update.dto';
 import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
 import { User } from 'src/shared/custom-decorator/user.decorator';
+import { FileHandler } from 'src/shared/shared-modules/file/file.handler';
 
 @Controller('user')
 export class UserController {
@@ -58,7 +61,7 @@ export class UserController {
     return result;
   }
 
-  @Patch('')
+  @Patch()
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
   async updateUser(
@@ -68,5 +71,28 @@ export class UserController {
     const updatedUser = await this.userService.updateUser(user.userId, body);
 
     return updatedUser;
+  }
+
+  @Patch('/profile-picture')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  @UseInterceptors(
+    FileHandler.generateFileInterceptor('profile', [
+      'jpeg',
+      'jpg',
+      'png',
+      'webp',
+    ]),
+  )
+  async updateProfilePicture(
+    @UploadedFile() file: Express.Multer.File,
+    @User() user: JwtUser,
+  ) {
+    const result = await this.userService.updateProfilePicture(
+      user.userId,
+      file,
+    );
+
+    return result;
   }
 }

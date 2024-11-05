@@ -17,6 +17,7 @@ import { EmailModule } from 'src/shared/shared-modules/email/email.module';
 import { OtpModule } from 'src/shared/shared-modules/otp/otp.module';
 import { EmailVerificationModule } from 'src/shared/shared-modules/email-verification/email-verification.module';
 import { JwtOtpStrategy } from './auth-strategies/jwt.otp.strategy';
+import { FileModule } from 'src/shared/shared-modules/file/file.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { JwtOtpStrategy } from './auth-strategies/jwt.otp.strategy';
     EmailModule,
     OtpModule,
     EmailVerificationModule,
+    FileModule
   ],
   providers: [
     LocalAuthService,
