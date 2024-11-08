@@ -31,6 +31,10 @@ import {
   UpdateProjectParamDto,
   updateProjectParamSchema,
 } from './dto/update.project.dto';
+import {
+  GetSingleProjectDto,
+  getSingleProjectSchema,
+} from './dto/get.single.project.dto';
 
 @Controller('manager/projects')
 export class ProjectController {
@@ -56,6 +60,34 @@ export class ProjectController {
     @User() user: JwtUser,
   ) {
     const result = await this.projectsService.getMyProjects(user.userId, query);
+    return result;
+  }
+
+  @Get('/:id')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async getSingleProject(
+    @Param(ZodValidation(getSingleProjectSchema)) param: GetSingleProjectDto,
+    @User() user: JwtUser,
+  ) {
+    const { id } = param;
+
+    const result = await this.projectsService.getSingleProject(user.userId, id);
+
+    return result;
+  }
+
+  @Get('/:id/summary')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async getProjectSummary(
+    @Param(ZodValidation(getSingleProjectSchema)) param: GetSingleProjectDto,
+    @User() user: JwtUser,
+  ) {
+    const { id } = param;
+
+    const result = await this.projectsService.getProjectSummary(id);
+
     return result;
   }
 

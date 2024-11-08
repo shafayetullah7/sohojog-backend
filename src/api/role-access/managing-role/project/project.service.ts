@@ -9,6 +9,9 @@ import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/resp
 import { CreateProjectBodyDto } from './dto/create.project.dto';
 import { GetMyProjectsQueryDto } from './dto/get.my.projets.dto';
 import { UpdateProjectBodyDto } from './dto/update.project.dto';
+import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access/manager.project.helper';
+import { title } from 'process';
+import { ProjectStats } from './type/project.summary.type';
 
 @Injectable()
 export class ProjectService {
@@ -118,7 +121,7 @@ export class ProjectService {
         },
       },
     });
-  
+
     // Get task counts grouped by project in a single query
     const taskCounts = await this.prisma.task.groupBy({
       by: ['projectId', 'status'],
@@ -127,26 +130,33 @@ export class ProjectService {
       },
       where: {
         projectId: {
-          in: projectsWithTaskCounts.map(project => project.id), // Filter tasks for fetched projects
+          in: projectsWithTaskCounts.map((project) => project.id), // Filter tasks for fetched projects
         },
       },
     });
-  
+
     // Prepare a map for easy access to task counts by projectId
-    const taskCountsMap = taskCounts.reduce((acc, { projectId, status, _count }) => {
-      acc[projectId] = acc[projectId] || { total: 0, todo: 0, done: 0 };
-      acc[projectId].total += _count.status;
-      if (status === 'TODO') {
-        acc[projectId].todo = _count.status;
-      } else if (status === 'DONE') {
-        acc[projectId].done = _count.status;
-      }
-      return acc;
-    }, {});
-  
+    const taskCountsMap = taskCounts.reduce(
+      (acc, { projectId, status, _count }) => {
+        acc[projectId] = acc[projectId] || { total: 0, todo: 0, done: 0 };
+        acc[projectId].total += _count.status;
+        if (status === 'TODO') {
+          acc[projectId].todo = _count.status;
+        } else if (status === 'DONE') {
+          acc[projectId].done = _count.status;
+        }
+        return acc;
+      },
+      {},
+    );
+
     // Enrich projects with task counts
-    const enrichedProjects = projectsWithTaskCounts.map(project => {
-      const taskCount = taskCountsMap[project.id] || { total: 0, todo: 0, done: 0 };
+    const enrichedProjects = projectsWithTaskCounts.map((project) => {
+      const taskCount = taskCountsMap[project.id] || {
+        total: 0,
+        todo: 0,
+        done: 0,
+      };
       return {
         ...project,
         description: project.description?.length
@@ -157,13 +167,12 @@ export class ProjectService {
         taskCounts: taskCount,
       };
     });
-  
+
     return this.response
       .setSuccess(true)
       .setMessage('Projects retrieved.')
       .setData({ projects: enrichedProjects });
   }
-  
 
   async updateProject(
     userId: string,
@@ -194,5 +203,256 @@ export class ProjectService {
       .setSuccess(true)
       .setMessage('Project updated')
       .setData(result);
+  }
+
+  async getSingleProject(userId: string, projectId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: {
+        AND: [
+          { id: projectId },
+          {
+            participations: {
+              some: {
+                userId: userId,
+                adminRole: {
+                  some: { active: true },
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        // Creator details
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profilePicture: {
+              select: {
+                minUrl: true,
+                midUrl: true,
+                fullUrl: true,
+              },
+            },
+          },
+        },
+
+        // Stakeholders' roles and information
+        stakeholders: {
+          select: {
+            role: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                profilePicture: {
+                  select: {
+                    minUrl: true,
+                    midUrl: true,
+                    fullUrl: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        // Wallet details, including transaction counts
+        wallet: true,
+      },
+    });
+
+    if (!project) {
+      throw new Error(
+        'Project not found or you do not have permission to access it',
+      );
+    }
+
+    // project.
+
+    // Format the response
+    const formattedResponse = {
+      project: {
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        tags: project.tags,
+        startDate: project.startDate,
+        endData: project.endDate,
+        visibility: project.visibility,
+        status: project.status,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        creator: project.creator
+          ? {
+              id: project.creator.id,
+              name: project.creator.name,
+              email: project.creator.email,
+              profilePicture: project.creator.profilePicture,
+            }
+          : null,
+
+        stakeholders: project.stakeholders.map((stakeholder) => ({
+          id: stakeholder.user.id,
+          name: stakeholder.user.name,
+          email: stakeholder.user.email,
+          profilePicture: stakeholder.user.profilePicture,
+          role: stakeholder.role,
+        })),
+      },
+    };
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Project details retrieved.')
+      .setData(formattedResponse);
+  }
+
+  async getProjectSummary(projectId: string) {
+    const rawStats = await this.prisma.$queryRaw<
+      Array<{
+        pendingCount: number;
+        acceptedCount: number;
+        declinedCount: number;
+        canceledCount: number;
+        totalInvitations: number;
+        totalTasks: number;
+        todoTasks: number;
+        inProgressTasks: number;
+        doneTasks: number;
+        haltedTasks: number;
+        archivedTasks: number;
+        totalParticipations: number;
+        activeParticipations: number;
+        inactiveParticipations: number;
+        totalStakeholders: number;
+        estimatedBudget: number;
+        balance: number;
+        totalTransactions: number;
+        totalCredits: number;
+        totalDebits: number;
+        creditTransactions: number;
+        debitTransactions: number;
+        totalTeams: number;
+        activeTeams: number;
+        inactiveTeams: number;
+      }>
+    >`
+  SELECT
+    -- Invitation counts
+    COUNT(i.id) FILTER (WHERE i.status = 'PENDING') AS "pendingCount",
+    COUNT(i.id) FILTER (WHERE i.status = 'ACCEPTED') AS "acceptedCount",
+    COUNT(i.id) FILTER (WHERE i.status = 'DECLINED') AS "declinedCount",
+    COUNT(i.id) FILTER (WHERE i.status = 'CANCELED') AS "canceledCount",
+    COUNT(i.id) AS "totalInvitations",
+
+    -- Task counts
+    COUNT(t.id) AS "totalTasks",
+    COUNT(t.id) FILTER (WHERE t.status = 'TODO') AS "todoTasks",
+    COUNT(t.id) FILTER (WHERE t.status = 'IN_PROGRESS') AS "inProgressTasks",
+    COUNT(t.id) FILTER (WHERE t.status = 'DONE') AS "doneTasks",
+    COUNT(t.id) FILTER (WHERE t.status = 'HALTED') AS "haltedTasks",
+    COUNT(t.id) FILTER (WHERE t.status = 'ARCHIVED') AS "archivedTasks",
+
+    -- Participation counts
+    COUNT(pa.id) AS "totalParticipations",
+    COUNT(pa.id) FILTER (WHERE pa.status = 'ACTIVE') AS "activeParticipations",
+    COUNT(pa.id) FILTER (WHERE pa.status = 'INACTIVE') AS "inactiveParticipations",
+
+    -- Stakeholder count
+    COUNT(ps.id) AS "totalStakeholders",
+
+    -- Wallet and transaction data
+    w."estimatedBudget" AS "estimatedBudget",
+    w."balance" AS "balance",
+    COUNT(wt.id) AS "totalTransactions",
+    SUM(CASE WHEN wt."transactionType" = 'CREDIT' THEN wt."amount" ELSE 0 END) AS "totalCredits",
+    SUM(CASE WHEN wt."transactionType" = 'DEBIT' THEN wt."amount" ELSE 0 END) AS "totalDebits",
+    COUNT(CASE WHEN wt."transactionType" = 'CREDIT' THEN 1 END) AS "creditTransactions",
+    COUNT(CASE WHEN wt."transactionType" = 'DEBIT' THEN 1 END) AS "debitTransactions",
+
+    -- Team counts
+    COUNT(tm.id) AS "totalTeams",
+    COUNT(tm.id) FILTER (WHERE tm.status = 'ACTIVE') AS "activeTeams",
+    COUNT(tm.id) FILTER (WHERE tm.status = 'INACTIVE') AS "inactiveTeams"
+
+  FROM
+    projects p
+  LEFT JOIN
+    invitations i ON i."projectId" = p.id 
+  LEFT JOIN
+    tasks t ON t."projectId" = p.id
+  LEFT JOIN
+    participations pa ON pa."projectId" = p.id
+  LEFT JOIN
+    project_stakeholders ps ON ps."projectId" = p.id
+  LEFT JOIN
+    teams tm ON tm."projectId" = p.id
+  LEFT JOIN
+    wallets w ON w."projectId" = p.id
+  LEFT JOIN
+    wallet_transactions wt ON wt."walletId" = w.id
+  WHERE
+    p.id = ${projectId}
+  GROUP BY
+    p.id, w.id;
+`;
+
+    // Handle the results
+    const stats = rawStats[0] || {};
+
+    // Build the summary object
+    const summary = {
+      invitations: {
+        pendingCount: Number(stats.pendingCount) || 0,
+        acceptedCount: Number(stats.acceptedCount) || 0,
+        declinedCount: Number(stats.declinedCount) || 0,
+        canceledCount: Number(stats.canceledCount) || 0,
+        totalInvitations: Number(stats.totalInvitations) || 0,
+      },
+      tasks: {
+        totalTasks: Number(stats.totalTasks) || 0,
+        todoTasks: Number(stats.todoTasks) || 0,
+        inProgressTasks: Number(stats.inProgressTasks) || 0,
+        doneTasks: Number(stats.doneTasks) || 0,
+        haltedTasks: Number(stats.haltedTasks) || 0,
+        archivedTasks: Number(stats.archivedTasks) || 0,
+      },
+      participations: {
+        totalParticipations: Number(stats.totalParticipations) || 0,
+        activeParticipations: Number(stats.activeParticipations) || 0,
+        inactiveParticipations: Number(stats.inactiveParticipations) || 0,
+      },
+      stakeholders: {
+        totalStakeholders: Number(stats.totalStakeholders) || 0,
+      },
+      wallet: {
+        estimatedBudget: Number(stats.estimatedBudget) || 0,
+        balance: Number(stats.balance) || 0,
+        transactions: {
+          totalTransactions: Number(stats.totalTransactions) || 0,
+          totalCredits: Number(stats.totalCredits) || 0,
+          totalDebits: Number(stats.totalDebits) || 0,
+          creditTransactions: Number(stats.creditTransactions) || 0,
+          debitTransactions: Number(stats.debitTransactions) || 0,
+        },
+      },
+      teams: {
+        totalTeams: Number(stats.totalTeams) || 0,
+        activeTeams: Number(stats.activeTeams) || 0,
+        inactiveTeams: Number(stats.inactiveTeams) || 0,
+      },
+    };
+
+    // console.log(rawStats);
+
+    // Return the response
+    return this.response
+      .setSuccess(true)
+      .setMessage('Project summary retrieved.')
+      .setData({ summary });
   }
 }

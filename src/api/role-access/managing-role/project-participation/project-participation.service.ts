@@ -36,6 +36,13 @@ export class ProjectParticipationService {
 
     if (searchTerm) {
       whereClause.OR = [
+        {
+          project: {
+            participations: {
+              some: { adminRole: { some: { participation: { userId } } } },
+            },
+          },
+        },
         { user: { name: { contains: searchTerm, mode: 'insensitive' } } },
         { user: { email: { contains: searchTerm, mode: 'insensitive' } } },
         { project: { title: { contains: searchTerm, mode: 'insensitive' } } },
@@ -64,7 +71,11 @@ export class ProjectParticipationService {
           select: {
             id: true,
             name: true,
-            profilePicture: true,
+            profilePicture: {
+              select: {
+                minUrl: true,
+              },
+            },
           },
         },
         project: {

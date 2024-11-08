@@ -120,7 +120,7 @@ export class InvitationService {
       });
 
       if (existingParticipation) {
-        throw new ConflictException('User is already a part of the project.');
+        throw new ConflictException('Already a part of the project.');
       }
 
       const updatedInvitation = await tx.invitation.update({

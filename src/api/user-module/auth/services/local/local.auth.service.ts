@@ -61,7 +61,10 @@ export class LocalAuthService {
         data.password = await this.passwordManager.hashPassword(data.password);
 
         // console.log('before user', dayjs().unix());
-        const user = await tx.user.create({ data });
+        const user = await tx.user.create({
+          data,
+          include: { profilePicture: true },
+        });
         if (!user) {
           throw new InternalServerErrorException('Failed to sign up');
         }
@@ -131,7 +134,10 @@ export class LocalAuthService {
 
   async login(data: LoginUserBodyDto) {
     const { email, password } = data;
-    const user = await this.prismaService.user.findFirst({ where: { email } });
+    const user = await this.prismaService.user.findFirst({
+      where: { email },
+      include: { profilePicture: true },
+    });
     if (!user) {
       throw new NotFoundException('User not found.');
     }
@@ -170,6 +176,9 @@ export class LocalAuthService {
   async verifyUser(userId: string, otp: string) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId },
+      include: {
+        profilePicture: true,
+      },
     });
     if (!user) {
       throw new NotFoundException('User not found.');

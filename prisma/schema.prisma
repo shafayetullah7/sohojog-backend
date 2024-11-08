@@ -51,7 +51,7 @@ enum InviteStatus {
   PENDING
   ACCEPTED
   DECLINED
-  CANCELLED
+  CANCELED
 }
 
 enum TeamStatus {
@@ -106,9 +106,121 @@ model User {
   participations  Participation[]      @relation("participation")
   createdProjects Project[]            @relation("project_creator")
   uploadedFiles   File[]
+  educations      Education[]
+  professions     Profession[]
+  certifications  Certification[]
+  hobbies         Hobby[]
+  preferences     Preference[]
+  skills          Skill[]
 
   @@unique([googleId, id])
   @@map("users")
+}
+
+model Education {
+  id           String   @id @default(uuid())
+  userId       String
+  degree       String
+  institution  String
+  fieldOfStudy String
+  startDate    DateTime
+  endDate      DateTime
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("educations")
+}
+
+model Profession {
+  id                  String    @id @default(uuid())
+  userId              String
+  jobTitle            String
+  company             String
+  startDate           DateTime
+  endDate             DateTime?
+  description         String?
+  isCurrentlyEmployed Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("professions")
+}
+
+model Certification {
+  id                  String    @id @default(uuid())
+  userId              String
+  certificationName   String
+  issuingOrganization String
+  issueDate           DateTime
+  expirationDate      DateTime?
+  credentialId        String?
+  description         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("certifications")
+}
+
+model Hobby {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String // e.g., "Photography", "Coding", "Traveling"
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("hobbies")
+}
+
+model Skill {
+  id          String   @id @default(uuid())
+  userId      String
+  skillName   String
+  skillLevel  String // E.g., Beginner, Intermediate, Expert
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, skillName]) // Ensures skillName is unique per user
+  @@index([userId])
+  @@map("skills")
+}
+
+model Preference {
+  id                 String   @id @default(uuid())
+  userId             String
+  emailNotifications Boolean  @default(true) // Whether the user receives email notifications
+  smsNotifications   Boolean  @default(false) // Whether the user receives SMS notifications
+  pushNotifications  Boolean  @default(true) // Whether the user receives push notifications
+  darkMode           Boolean  @default(false) // Whether the user prefers dark mode
+  language           String   @default("en") // User's preferred language (e.g., "en", "es")
+  timeZone           String   @default("UTC") // User's time zone (e.g., "UTC", "America/New_York")
+  privacyLevel       String   @default("standard") // Privacy level: "standard", "private", "custom"
+  showOnlineStatus   Boolean  @default(true) // Whether the user shows their online status to others
+  twoFactorAuth      Boolean  @default(false) // Whether the user has two-factor authentication enabled
+  emailUpdates       Boolean  @default(true) // Whether the user receives email updates (e.g., newsletters)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("preferences")
 }
 
 // user    User    @relation("participation", fields: [userId], references: [id])
@@ -217,10 +329,10 @@ model Participation {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
-  invitation           Invitation?            @relation(name: "invited_participation", fields: [invitationId], references: [id])
-  project              Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user                 User                   @relation("participation", fields: [userId], references: [id])
-  adminRole            ProjectAdmin[]
+  invitation            Invitation?            @relation(name: "invited_participation", fields: [invitationId], references: [id])
+  project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user                  User                   @relation("participation", fields: [userId], references: [id])
+  adminRole             ProjectAdmin[]
   teamMemberships       TeamMembership[]
   taskAssignments       TaskAssignment[]
   taskSubmissions       TaskSubmission[]
@@ -231,17 +343,17 @@ model Participation {
 }
 
 model Team {
-  id                 String               @id @default(uuid())
-  name               String               @db.VarChar(255)
-  purpose            String?              @db.Text
-  projectId          String
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  status             TeamStatus           @default(ACTIVE)
-  responsibilities   String[]
-  project            Project              @relation(fields: [projectId], references: [id])
-  memberShips        TeamMembership[]
-  teamWallet         TeamWallet?
+  id                  String               @id @default(uuid())
+  name                String               @db.VarChar(255)
+  purpose             String?              @db.Text
+  projectId           String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  status              TeamStatus           @default(ACTIVE)
+  responsibilities    String[]
+  project             Project              @relation(fields: [projectId], references: [id])
+  memberShips         TeamMembership[]
+  teamWallet          TeamWallet?
   teamTaskAssignments TeamTaskAssignment[]
 
   @@unique([projectId, name])
@@ -279,13 +391,14 @@ model TeamLeader {
 }
 
 model Wallet {
-  id        String       @id @default(uuid())
-  balance   Float        @default(0.0)
-  currency  Currency     @default(USD)
-  status    WalletStatus @default(ACTIVE)
-  projectId String       @unique
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id              String       @id @default(uuid())
+  estimatedBudget Float        @default(0)
+  balance         Float        @default(0.0)
+  currency        Currency     @default(USD)
+  status          WalletStatus @default(ACTIVE)
+  projectId       String       @unique
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   // Relations
   project Project @relation(fields: [projectId], references: [id])
@@ -327,8 +440,8 @@ model WalletTransaction {
   updatedAt       DateTime        @updatedAt
 
   // Relations
-  wallet          Wallet            @relation(fields: [walletId], references: [id])
-  transactionBy   ProjectAdmin      @relation(fields: [transactionById], references: [id])
+  wallet           Wallet            @relation(fields: [walletId], references: [id])
+  transactionBy    ProjectAdmin      @relation(fields: [transactionById], references: [id])
   teamTransactions TeamTransaction[]
 
   @@map("wallet_transactions")
@@ -538,7 +651,7 @@ model TaskSubmission {
   status      SubmissionStatus
 
   // relations
-  participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  participation   Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
   submissionFiles SubmissionFile[]
 
   @@map("task_submissions")
