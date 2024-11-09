@@ -78,13 +78,6 @@ export class ProjectParticipationService {
             },
           },
         },
-        project: {
-          select: {
-            id: true,
-            title: true,
-            tags: true,
-          },
-        },
       },
     });
 

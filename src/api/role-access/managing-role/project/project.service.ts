@@ -311,7 +311,7 @@ export class ProjectService {
       .setData(formattedResponse);
   }
 
-  async getProjectSummary(projectId: string) {
+  async getProjectSummary(userId: string, projectId: string) {
     const rawStats = await this.prisma.$queryRaw<
       Array<{
         pendingCount: number;
@@ -395,8 +395,9 @@ export class ProjectService {
     wallets w ON w."projectId" = p.id
   LEFT JOIN
     wallet_transactions wt ON wt."walletId" = w.id
+  LEFT JOIN project_admins pad ON pad."participationId" = pa.id
   WHERE
-    p.id = ${projectId}
+    p.id = ${projectId} and pa."userId" = ${userId}
   GROUP BY
     p.id, w.id;
 `;
@@ -454,5 +455,114 @@ export class ProjectService {
       .setSuccess(true)
       .setMessage('Project summary retrieved.')
       .setData({ summary });
+  }
+
+  async getProjectParticipants(userId: string, projectId: string) {
+    const participants = await this.prisma.participation.findMany({
+      where: {
+        projectId,
+        project: {
+          participations: {
+            some: {
+              userId,
+              adminRole: {
+                some: {
+                  active: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        joinedAt: true,
+        designation: true,
+        user: {
+          select: {
+            name: true,
+            profilePicture: {
+              select: {
+                minUrl: true,
+              },
+            },
+          },
+        },
+      },
+      take: 20,
+    });
+
+    return participants;
+  }
+
+  async getTasksGroupedByStatusWithStats(limit = 5, projectId: string) {
+    const rawStats = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        title: string;
+        description: string;
+        status: string;
+        priority: string;
+        dueDate: Date | null;
+        inableBudget: boolean;
+        budget: number;
+        projectId: string;
+        createdBy: string;
+        taskAssignmentType: string;
+        createdAt: Date;
+        updatedAt: Date;
+        totalCount: number; // Make sure to use "totalCount" here
+        lastAction: Date | null;
+      }>
+    >`
+      WITH RankedTasks AS (
+        SELECT 
+          "id", "title", "description", "status", "priority", "dueDate", "inableBudget", "budget",
+          "projectId", "createdBy", "taskAssignmentType", "createdAt", "updatedAt",
+          ROW_NUMBER() OVER (PARTITION BY "status" ORDER BY "createdAt" DESC) AS row_num
+        FROM "tasks"
+        WHERE "projectId" = ${projectId}
+      ),
+      Stats AS (
+        SELECT 
+          "status",
+          COUNT(*) AS "totalCount",  // Change this to "totalCount"
+          MAX("updatedAt") AS "lastAction"
+        FROM "tasks"
+        WHERE "projectId" = ${projectId}
+        GROUP BY "status"
+      )
+      SELECT 
+        rt.*, 
+        s."totalCount",  // Ensure it's referred to as "totalCount"
+        s."lastAction"
+      FROM RankedTasks rt
+      JOIN Stats s ON rt."status" = s."status"
+      WHERE rt.row_num <= ${limit}
+      ORDER BY rt."status", rt.createdAt DESC;
+    `;
+
+    const groupedTasks = rawStats.reduce(
+      (acc, task) => {
+        if (!acc[task.status]) {
+          acc[task.status] = {
+            tasks: [],
+            totalCount: task.totalCount, // Use "totalCount"
+            lastAction: task.lastAction,
+          };
+        }
+        acc[task.status].tasks.push(task);
+        return acc;
+      },
+      {} as Record<
+        string,
+        { tasks: typeof rawStats; totalCount: number; lastAction: Date | null }
+      >,
+    );
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Tasks grouped by status with stats retrieved.')
+      .setData(groupedTasks);
   }
 }

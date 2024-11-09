@@ -324,6 +324,7 @@ model Participation {
   userId       String
   status       ParticipationStatus @default(ACTIVE)
   role         ParticipationRole   @default(MEMBER)
+  designation  String[]            @default([])
   invitationId String?             @unique
   joinedAt     DateTime?
   createdAt    DateTime            @default(now())
