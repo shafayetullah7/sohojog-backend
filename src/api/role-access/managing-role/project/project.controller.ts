@@ -77,6 +77,33 @@ export class ProjectController {
     return result;
   }
 
+  @Get('/:id/participants')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async getProjectTasks(
+    @Param(ZodValidation(getSingleProjectSchema)) param: GetSingleProjectDto,
+    @User() user: JwtUser,
+  ) {
+    const { id } = param;
+    const result = await this.projectsService.getProjectParticipants(
+      user.userId,
+      id,
+    );
+    return result;
+  }
+
+  @Get('/:id/teams')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async getProjectTeams(
+    @Param(ZodValidation(getSingleProjectSchema)) param: GetSingleProjectDto,
+    @User() user: JwtUser,
+  ) {
+    const { id } = param;
+    const result = await this.projectsService.getProjectTeams(user.userId, id);
+    return result;
+  }
+
   @Get('/:id/summary')
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
@@ -86,7 +113,10 @@ export class ProjectController {
   ) {
     const { id } = param;
 
-    const result = await this.projectsService.getProjectSummary(id);
+    const result = await this.projectsService.getProjectSummary(
+      user.userId,
+      id,
+    );
 
     return result;
   }

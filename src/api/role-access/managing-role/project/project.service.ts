@@ -208,60 +208,45 @@ export class ProjectService {
   async getSingleProject(userId: string, projectId: string) {
     const project = await this.prisma.project.findFirst({
       where: {
-        AND: [
-          { id: projectId },
-          {
-            participations: {
-              some: {
-                userId: userId,
-                adminRole: {
-                  some: { active: true },
-                },
-              },
-            },
+        id: projectId,
+        participations: {
+          some: {
+            userId: userId,
+            adminRole: { some: { active: true } },
           },
-        ],
+        },
       },
       include: {
-        // Creator details
         creator: {
           select: {
             id: true,
             name: true,
             email: true,
             profilePicture: {
-              select: {
-                minUrl: true,
-                midUrl: true,
-                fullUrl: true,
-              },
+              select: { minUrl: true, midUrl: true, fullUrl: true },
             },
           },
         },
-
-        // Stakeholders' roles and information
-        stakeholders: {
+        wallet: {
           select: {
-            role: true,
-            user: {
+            currency: true,
+            estimatedBudget: true,
+            _count: {
               select: {
-                id: true,
-                name: true,
-                email: true,
-                profilePicture: {
-                  select: {
-                    minUrl: true,
-                    midUrl: true,
-                    fullUrl: true,
-                  },
-                },
+                transactions: true,
               },
             },
           },
         },
-
-        // Wallet details, including transaction counts
-        wallet: true,
+        _count: {
+          select: {
+            participations: true,
+            teams: true,
+            tasks: true,
+            invitations: true,
+            stakeholders: true,
+          },
+        },
       },
     });
 
@@ -271,44 +256,122 @@ export class ProjectService {
       );
     }
 
-    // project.
-
-    // Format the response
     const formattedResponse = {
-      project: {
-        id: project.id,
-        title: project.title,
-        description: project.description,
-        tags: project.tags,
-        startDate: project.startDate,
-        endData: project.endDate,
-        visibility: project.visibility,
-        status: project.status,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
-        creator: project.creator
-          ? {
-              id: project.creator.id,
-              name: project.creator.name,
-              email: project.creator.email,
-              profilePicture: project.creator.profilePicture,
-            }
-          : null,
-
-        stakeholders: project.stakeholders.map((stakeholder) => ({
-          id: stakeholder.user.id,
-          name: stakeholder.user.name,
-          email: stakeholder.user.email,
-          profilePicture: stakeholder.user.profilePicture,
-          role: stakeholder.role,
-        })),
-      },
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      tags: project.tags,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      visibility: project.visibility,
+      priority: project.priority,
+      status: project.status,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      creator: project.creator,
+      counts: project._count,
+      wallet: project.wallet,
     };
 
     return this.response
       .setSuccess(true)
       .setMessage('Project details retrieved.')
-      .setData(formattedResponse);
+      .setData({ project: formattedResponse });
+  }
+
+  // Fetches project teams with team details
+  async getProjectTeams(userId: string, projectId: string) {
+    const teams = await this.prisma.team.findMany({
+      where: {
+        projectId,
+        project: {
+          participations: {
+            some: {
+              userId,
+              adminRole: {
+                some: {
+                  active: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      take: 10,
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        _count: {
+          select: {
+            memberShips: true,
+            teamTaskAssignments: true,
+          },
+        },
+      },
+    });
+
+    const formattedTeams = teams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      createdAt: team.createdAt,
+      counts: {
+        members: team._count.memberShips,
+        taskAssignments: team._count.teamTaskAssignments,
+      },
+    }));
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Project teams retrieved.')
+      .setData({ teams: formattedTeams });
+  }
+
+  // Fetches participations in the project
+  async getProjectParticipants(userId: string, projectId: string) {
+    const participations = await this.prisma.participation.findMany({
+      where: {
+        projectId,
+        project: {
+          participations: {
+            some: {
+              userId,
+              adminRole: {
+                some: {
+                  active: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      take: 20,
+      select: {
+        id: true,
+        joinedAt: true,
+        designation: true,
+        user: {
+          select: {
+            name: true,
+            profilePicture: {
+              select: { minUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    const formattedParticipations = participations.map((participation) => ({
+      id: participation.id,
+      joinedAt: participation.joinedAt,
+      designation: participation.designation,
+      user: participation.user,
+    }));
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Project participations retrieved.')
+      .setData({ participants: formattedParticipations });
   }
 
   async getProjectSummary(userId: string, projectId: string) {
@@ -455,44 +518,6 @@ export class ProjectService {
       .setSuccess(true)
       .setMessage('Project summary retrieved.')
       .setData({ summary });
-  }
-
-  async getProjectParticipants(userId: string, projectId: string) {
-    const participants = await this.prisma.participation.findMany({
-      where: {
-        projectId,
-        project: {
-          participations: {
-            some: {
-              userId,
-              adminRole: {
-                some: {
-                  active: true,
-                },
-              },
-            },
-          },
-        },
-      },
-      select: {
-        id: true,
-        joinedAt: true,
-        designation: true,
-        user: {
-          select: {
-            name: true,
-            profilePicture: {
-              select: {
-                minUrl: true,
-              },
-            },
-          },
-        },
-      },
-      take: 20,
-    });
-
-    return participants;
   }
 
   async getTasksGroupedByStatusWithStats(limit = 5, projectId: string) {
