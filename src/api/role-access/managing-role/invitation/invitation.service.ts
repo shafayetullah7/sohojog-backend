@@ -95,7 +95,7 @@ export class InvitationService {
     return this.response
       .setSuccess(true)
       .setMessage('Invitation sent successfully')
-      .setData(result);
+      .setData({ invitaion: result });
   }
 
   async getInvitationsByManager(userId: string, query: GetInvitationsQueryDto) {
