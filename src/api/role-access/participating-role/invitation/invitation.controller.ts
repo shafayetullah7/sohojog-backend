@@ -18,7 +18,7 @@ import { ZodValidation } from 'src/shared/custom-decorator/zod.validation.decora
 import {
   GetInvitationsQueryDto,
   getInvitationsQuerySchema,
-} from './dto/get.invittion.dto';
+} from './dto/get.invittions.dto';
 import { User } from 'src/shared/custom-decorator/user.decorator';
 import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
 import {
@@ -27,6 +27,16 @@ import {
   InvitationResponseParamDto,
   invitationResponseParamSchema,
 } from './dto/invitation.response.dto';
+import {
+  updateParticipantInvitationBody,
+  UpdateParticipantInvitationBodyDto,
+  updateParticipantInvitationParams,
+  UpdateParticipantInvitationParamsDto,
+} from './dto/update.invitation.dto';
+import {
+  GetSingleInvitationParamsDto,
+  getSingleInvitationParamsSchema,
+} from './dto/get.single.invitation.dto';
 
 @Controller('participant/invitations')
 export class InvitationController {
@@ -47,10 +57,25 @@ export class InvitationController {
     return result;
   }
 
-  @Patch("/:id")
+  @Get('/:id')
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
-  async respondToInvitationn(
+  async getSingleInvitation(
+    @Param(ZodValidation(getSingleInvitationParamsSchema))
+    params: GetSingleInvitationParamsDto,
+    @User() user: JwtUser,
+  ) {
+    const result = await this.invitationService.getSingleInvitations(
+      user.userId,
+      params.id,
+    );
+    return result;
+  }
+
+  @Patch('/:id')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async respondToInvitation(
     @Body(ZodValidation(invitationResponseBodySchema))
     body: InvitationResponseBodyDto,
     @Param(ZodValidation(invitationResponseParamSchema))
@@ -58,6 +83,24 @@ export class InvitationController {
     @User() user: JwtUser,
   ) {
     const result = await this.invitationService.respondToInvitation(
+      user.userId,
+      params.id,
+      body,
+    );
+    return result;
+  }
+
+  @Patch('/:id/see')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async seeInvitation(
+    @Body(ZodValidation(updateParticipantInvitationBody))
+    body: UpdateParticipantInvitationBodyDto,
+    @Param(ZodValidation(updateParticipantInvitationParams))
+    params: UpdateParticipantInvitationParamsDto,
+    @User() user: JwtUser,
+  ) {
+    const result = await this.invitationService.updateInvitationSeenStatus(
       user.userId,
       params.id,
       body,

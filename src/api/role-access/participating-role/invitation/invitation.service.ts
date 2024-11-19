@@ -8,6 +8,8 @@ import { InviteStatus, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { InvitationResponseBodyDto } from './dto/invitation.response.dto';
+import { GetInvitationsQueryDto } from './dto/get.invittions.dto';
+import { UpdateParticipantInvitationBodyDto } from './dto/update.invitation.dto';
 
 @Injectable()
 export class InvitationService {
@@ -16,7 +18,7 @@ export class InvitationService {
     private readonly response: ResponseBuilder<any>,
   ) {}
 
-  async getInvitations(userId: string, query: Prisma.InvitationWhereInput) {
+  async getInvitations(userId: string, query: GetInvitationsQueryDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
@@ -28,13 +30,102 @@ export class InvitationService {
       limit = 10,
       sortBy = 'createdAt',
       sortOrder = 'asc',
+      searchTerm,
       ...filters
-    } = query as any;
+    } = query;
 
-    // Construct the Prisma findMany query based on filters and pagination
+    // Construct the Prisma `where` clause
+    const where: Prisma.InvitationWhereInput = {
+      ...filters, // Filters like projectId, status, invitedBy, etc.
+      email: user.email,
+      AND: searchTerm
+        ? [
+            {
+              OR: [
+                {
+                  inviter: {
+                    name: { contains: searchTerm, mode: 'insensitive' },
+                  },
+                },
+                {
+                  project: {
+                    title: { contains: searchTerm, mode: 'insensitive' },
+                  },
+                },
+              ],
+            },
+          ]
+        : undefined,
+    };
+
+    // Fetch invitations
     const invitations = await this.prisma.invitation.findMany({
+      where,
+      select: {
+        id: true,
+        status: true,
+        sentAt: true,
+        invitedBy: true,
+        seen: true,
+        seenAt: true,
+        createdAt: true,
+        inviter: {
+          select: {
+            email: true,
+            id: true,
+            profilePicture: {
+              select: {
+                minUrl: true,
+              },
+            },
+            name: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
+      },
+
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+    });
+
+    // Get total count for pagination metadata
+    const total = await this.prisma.invitation.count({ where });
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Invitations retrieved')
+      .setData({
+        invitations,
+        pagination: {
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+        },
+      });
+  }
+
+  async getSingleInvitations(userId: string, id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    // Fetch invitations
+    const invitation = await this.prisma.invitation.findFirst({
       where: {
-        ...filters, // Applies any filters provided in the query, like projectId, status, etc.
+        id,
+        email: user.email,
       },
       include: {
         inviter: {
@@ -49,36 +140,36 @@ export class InvitationService {
           select: {
             id: true,
             title: true,
+            createdAt: true,
+            description: true,
             status: true,
+            _count: {
+              select: {
+                participations: true,
+                teams: true,
+              },
+            },
+            creator: {
+              select: {
+                name: true,
+                email: true,
+                profilePicture: {
+                  select: {
+                    midUrl: true,
+                    minUrl: true,
+                  },
+                },
+              },
+            },
           },
         },
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
-    });
-
-    // Get total count for pagination metadata
-    const total = await this.prisma.invitation.count({
-      where: {
-        ...filters,
       },
     });
 
     return this.response
       .setSuccess(true)
-      .setMessage('Invitations retreived')
-      .setData({
-        invitations,
-        pagination: {
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-          totalItems: total,
-        },
-      });
+      .setMessage('Invitations retrieved')
+      .setData(invitation);
   }
 
   async respondToInvitation(
@@ -141,5 +232,36 @@ export class InvitationService {
       .setSuccess(true)
       .setMessage(`Invitation ${payload.status.toLowerCase()}.`)
       .setData(result);
+  }
+
+  async updateInvitationSeenStatus(
+    userId: string, // The ID of the user making the request
+    invitationId: string, // Passed as a parameter
+    updateDto: UpdateParticipantInvitationBodyDto, // Fields to update, passed in the body
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+    const { seen } = updateDto;
+
+    // Step 1: Fetch the invitation by ID and validate its existence
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { id: invitationId, email: user.email },
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found.');
+    }
+
+    const updatedInvitation = await this.prisma.invitation.update({
+      where: { id: invitationId },
+      data: { seen, seenAt: seen ? new Date() : null },
+    });
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Invitation updated')
+      .setData(null);
   }
 }

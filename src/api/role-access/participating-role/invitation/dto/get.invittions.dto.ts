@@ -10,7 +10,7 @@ export const getInvitationsQuerySchema = z
 
     date: z
       .string()
-      .date() // Direct date validation in 'yyyy-mm-dd' format
+      .date()
       .transform((dateString) => dayjs(dateString).toDate())
       .optional(),
 
@@ -52,13 +52,18 @@ export const getInvitationsQuerySchema = z
       .transform((dateString) => dayjs(dateString).toDate())
       .optional(),
 
-    // page: z.number().int().positive().default(1),
-    // limit: z
-    //   .number()
-    //   .int()
-    //   .positive()
-    //   .max(100, 'Limit cannot be more than 100')
-    //   .default(10),
+    page: z.number().int().positive().default(1),
+    limit: z
+      .number()
+      .int()
+      .positive()
+      .max(100, 'Limit cannot be more than 100')
+      .default(10),
+
+    sortBy: z.string().optional().default('createdAt'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
+
+    searchTerm: z.string().trim().max(255).optional(),
   })
   .strict();
 
