@@ -132,7 +132,12 @@ export class InvitationService {
           select: {
             email: true,
             id: true,
-            profilePicture: true,
+            profilePicture: {
+              select: {
+                minUrl: true,
+                midUrl: true,
+              },
+            },
             name: true,
           },
         },
@@ -166,10 +171,14 @@ export class InvitationService {
       },
     });
 
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found.');
+    }
+
     return this.response
       .setSuccess(true)
       .setMessage('Invitations retrieved')
-      .setData(invitation);
+      .setData({ invitation });
   }
 
   async respondToInvitation(
@@ -226,7 +235,7 @@ export class InvitationService {
           invitationId: invitation.id,
         },
       });
-      return { participation, invitation: updatedInvitation };
+      return null;
     });
     return this.response
       .setSuccess(true)
@@ -237,13 +246,13 @@ export class InvitationService {
   async updateInvitationSeenStatus(
     userId: string, // The ID of the user making the request
     invitationId: string, // Passed as a parameter
-    updateDto: UpdateParticipantInvitationBodyDto, // Fields to update, passed in the body
+    payload: UpdateParticipantInvitationBodyDto, // Fields to update, passed in the body
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found.');
     }
-    const { seen } = updateDto;
+    const { seen } = payload;
 
     // Step 1: Fetch the invitation by ID and validate its existence
     const invitation = await this.prisma.invitation.findUnique({
@@ -254,10 +263,28 @@ export class InvitationService {
       throw new NotFoundException('Invitation not found.');
     }
 
-    const updatedInvitation = await this.prisma.invitation.update({
-      where: { id: invitationId },
-      data: { seen, seenAt: seen ? new Date() : null },
-    });
+    if(payload.seen){
+      if (!invitation.seen) {
+        const updatedInvitation = await this.prisma.invitation.update({
+          where: { id: invitationId },
+          data: { seen, seenAt: seen ? new Date() : null },
+        });
+      }
+    }else{
+      if (invitation.seen) {
+        const updatedInvitation = await this.prisma.invitation.update({
+          where: { id: invitationId },
+          data: { seen, seenAt: seen ? new Date() : null },
+        });
+      }
+    }
+
+    // if (!invitation.seen && payload.seen) {
+    //   const updatedInvitation = await this.prisma.invitation.update({
+    //     where: { id: invitationId },
+    //     data: { seen, seenAt: seen ? new Date() : null },
+    //   });
+    // }
 
     return this.response
       .setSuccess(true)
