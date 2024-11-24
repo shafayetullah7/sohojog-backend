@@ -62,7 +62,10 @@ export class TeamService {
       },
     });
 
-    return newTeam;
+    return this.response
+      .setSuccess(true)
+      .setMessage('New team created.')
+      .setData({ newTeam });
   }
 
   async getTeamsByManager(userId: string, query: GetMyProjectTeamsQueryDto) {
@@ -90,7 +93,10 @@ export class TeamService {
       },
     });
 
-    return teams;
+    return this.response
+      .setSuccess(true)
+      .setMessage('Teams retrieved')
+      .setData({ teams });
   }
 
   async updateTeam(userId: string, teamId: string, payload: UpdateTeamBodyDto) {
