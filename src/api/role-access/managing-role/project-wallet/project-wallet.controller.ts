@@ -47,7 +47,7 @@ export class ProjectWalletController {
     return result;
   }
 
-  @Patch('/:walletId')
+  @Patch('/:projectId')
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
   async updateWallet(
@@ -59,7 +59,7 @@ export class ProjectWalletController {
   ) {
     const result = await this.projectWalletService.updateWalletStatus(
       user.userId,
-      params.walletId,
+      params.projectId,
       payload,
     );
   }

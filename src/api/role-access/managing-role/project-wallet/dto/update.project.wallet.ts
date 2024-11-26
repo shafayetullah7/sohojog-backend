@@ -6,7 +6,7 @@ export const updateProjectWalletBodySchema = z.object({
 });
 
 export const updateProjectWalletParamSchema = z.object({
-  walletId: z.string().uuid('Invalid wallet ID'),
+  projectId: z.string().uuid('Invalid project ID'),
 });
 
 export type UpdateProjectWalletBodyDto = z.infer<
