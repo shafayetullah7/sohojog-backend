@@ -12,7 +12,7 @@ import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
 import { GetMyProjectTeamsQueryDto, getMyProjectTeamsQuerySchema } from './dto/get.team.dto';
 import { UpdateTeamBodyDto, updateTeamBodySchema, UpdateTeamParamDto, updateTeamParamSchema } from './dto/update.team.dto';
 
-@Controller('team')
+@Controller('manager/teams')
 export class TeamController {
   constructor(private readonly teamService: TeamService) {}
 

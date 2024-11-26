@@ -13,6 +13,7 @@ import { managerProjectHelper } from 'src/_helpers/access-helpers/manager-access
 import { managerTeamHelper } from 'src/_helpers/access-helpers/manager-access/manager.team.helper';
 import { AssignTeamRoleDto } from './dto/assign.team.role.dto';
 import { managerTeamMembershipHelpers } from 'src/_helpers/access-helpers/manager-access/manager.membership.helper';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TeamService {
@@ -68,35 +69,190 @@ export class TeamService {
       .setData({ newTeam });
   }
 
+  // async getTeamsByManager(userId: string, query: GetMyProjectTeamsQueryDto) {
+  //   const { where, page, limit, sortBy, sortOrder } = query;
+
+  //   const teams = await this.prisma.team.findMany({
+  //     where: {
+  //       ...where,
+  //       project: {
+  //         participations: {
+  //           some: {
+  //             userId,
+  //             adminRole: { some: { active: true } },
+  //           },
+  //         },
+  //         // AND: [
+
+  //         // ],
+  //       },
+  //     },
+  //     select: {
+  //       id: true,
+  //       name: true,
+  //       createdAt: true,
+  //       projectId: true,
+  //       status: true,
+  //       memberShips: {
+  //         select: {
+  //           id: true,
+  //           joinedAt: true,
+  //           participation: {
+  //             select: {
+  //               user: {
+  //                 select: {
+  //                   name: true,
+  //                   profilePicture: {
+  //                     select: {
+  //                       minUrl: true,
+  //                     },
+  //                   },
+  //                 },
+  //               },
+  //             },
+  //           },
+  //         },
+  //         take: 3,
+  //       },
+  //       _count: {
+  //         select: {
+  //           memberShips: true,
+  //           teamTaskAssignments: true,
+  //         },
+  //       },
+  //     },
+  //     skip: (page - 1) * limit,
+  //     take: limit,
+  //     orderBy: {
+  //       [sortBy]: sortOrder,
+  //     },
+  //   });
+
+  //   return this.response
+  //     .setSuccess(true)
+  //     .setMessage('Teams retrieved')
+  //     .setData({ teams });
+  // }
+
   async getTeamsByManager(userId: string, query: GetMyProjectTeamsQueryDto) {
-    const { where, page, limit, sortBy, sortOrder } = query;
+    const {
+      id,
+      searchTerm,
+      projectId,
+      status,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    } = query;
 
+    // Construct `where` clause
+    const whereClause: Prisma.TeamWhereInput = {};
+
+    if (id) {
+      whereClause.id = id;
+    }
+
+    if (searchTerm) {
+      whereClause.OR = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { responsibilities: { hasSome: [searchTerm] } },
+        { purpose: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
+    if (projectId) {
+      whereClause.projectId = projectId;
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    // Perform query
     const teams = await this.prisma.team.findMany({
-      where: {
-        ...where,
-        project: {
-          participations: {
-            some: {
-              userId,
-              adminRole: { some: { active: true } },
-            },
-          },
-          // AND: [
-
-          // ],
-        },
-      },
+      where: whereClause,
       skip: (page - 1) * limit,
       take: limit,
       orderBy: {
         [sortBy]: sortOrder,
       },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        projectId: true,
+        status: true,
+        memberShips: {
+          select: {
+            id: true,
+            joinedAt: true,
+            participation: {
+              select: {
+                user: {
+                  select: {
+                    name: true,
+                    profilePicture: {
+                      select: {
+                        minUrl: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          take: 3,
+        },
+        _count: {
+          select: {
+            memberShips: true,
+            teamTaskAssignments: true,
+          },
+        },
+      },
     });
+
+    // Calculate total count for teams (for pagination)
+    const totalTeams = await this.prisma.team.count({
+      where: whereClause,
+    });
+
+    // Format response
+    const formattedTeams = teams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      projectId: team.projectId,
+      createdAt: team.createdAt,
+      status: team.status,
+      counts: {
+        memberCount: team._count.memberShips,
+        taskAssignmentCount: team._count.teamTaskAssignments,
+      },
+      members: team.memberShips.map((membership) => ({
+        id: membership.id,
+        joinedAt: membership.joinedAt,
+        userName: membership.participation.user.name,
+        profilePictureUrl:
+          membership.participation.user.profilePicture?.minUrl || null,
+      })),
+    }));
+
+    // Pagination info
+    const totalPages = Math.ceil(totalTeams / limit);
 
     return this.response
       .setSuccess(true)
       .setMessage('Teams retrieved')
-      .setData({ teams });
+      .setData({
+        pagination: {
+          currentPage: page,
+          pageSize: limit,
+          totalTeams,
+          totalPages,
+        },
+        teams: formattedTeams,
+      });
   }
 
   async updateTeam(userId: string, teamId: string, payload: UpdateTeamBodyDto) {
