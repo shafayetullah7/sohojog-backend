@@ -231,6 +231,7 @@ export class ProjectService {
           select: {
             currency: true,
             estimatedBudget: true,
+            balance:true,
             _count: {
               select: {
                 transactions: true,
