@@ -62,6 +62,15 @@ export class ProjectParticipationService {
       };
     }
 
+    // Fetch total count of matching participations
+    const totalItems = await this.prisma.participation.count({
+      where: whereClause,
+    });
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Fetch paginated participations
     const participations = await this.prisma.participation.findMany({
       where: whereClause,
       skip: (page - 1) * limit,
@@ -83,8 +92,16 @@ export class ProjectParticipationService {
 
     return this.response
       .setSuccess(true)
-      .setMessage('Participations retreived.')
-      .setData({ participations });
+      .setMessage('Participations retrieved.')
+      .setData({
+        participations,
+        pagination: {
+          currentPage: page,
+          totalItems,
+          totalPages,
+          pageSize: limit,
+        },
+      });
   }
 
   async updateProjectParticipations(

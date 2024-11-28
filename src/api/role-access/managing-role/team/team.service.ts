@@ -214,7 +214,7 @@ export class TeamService {
     });
 
     // Calculate total count for teams (for pagination)
-    const totalTeams = await this.prisma.team.count({
+    const totalItems = await this.prisma.team.count({
       where: whereClause,
     });
 
@@ -239,7 +239,7 @@ export class TeamService {
     }));
 
     // Pagination info
-    const totalPages = Math.ceil(totalTeams / limit);
+    const totalPages = Math.ceil(totalItems / limit);
 
     return this.response
       .setSuccess(true)
@@ -248,7 +248,7 @@ export class TeamService {
         pagination: {
           currentPage: page,
           pageSize: limit,
-          totalTeams,
+          totalItems,
           totalPages,
         },
         teams: formattedTeams,
