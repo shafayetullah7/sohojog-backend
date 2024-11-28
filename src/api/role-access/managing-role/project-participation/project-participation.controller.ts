@@ -27,7 +27,7 @@ import {
   projectParticipationUpdatePayloadSchema,
 } from './dto/project.participation.update.dto';
 
-@Controller('manager/project-participations')
+@Controller('manager/participations')
 export class ProjectParticipationController {
   constructor(
     private readonly projectParticipationService: ProjectParticipationService,
