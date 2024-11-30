@@ -9,6 +9,8 @@ import { TeamWalletModule } from './team-wallet/team-wallet.module';
 import { TeamWalletTransactionModule } from './team-wallet-transaction/team-wallet-transaction.module';
 import { ProjectParticipationModule } from './project-participation/project-participation.module';
 import { ManagerTaskModule } from './manager-task/manager-task.module';
+import { ProjectPropertiesModule } from './project-properties/project-properties.module';
+import { ProjectPropertiesModule } from './project-properties/project-properties.module';
 
 @Module({
   imports: [
@@ -22,6 +24,7 @@ import { ManagerTaskModule } from './manager-task/manager-task.module';
     TeamWalletTransactionModule,
     ProjectParticipationModule,
     ManagerTaskModule,
+    ProjectPropertiesModule,
   ],
 })
 export class ManagingRoleModule {}

@@ -27,7 +27,7 @@ export class ProjectService {
         where: { creatorId_title: { creatorId: userId, title: payload.title } },
       });
 
-      console.log('********', userId);
+      // console.log('********', userId);
 
       // Throw an error if a project with the same title exists
       if (existingProject) {
@@ -591,4 +591,7 @@ export class ProjectService {
       .setMessage('Tasks grouped by status with stats retrieved.')
       .setData(groupedTasks);
   }
+
+  
+
 }

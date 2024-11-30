@@ -75,7 +75,11 @@ export class ProjectParticipationService {
       where: whereClause,
       skip: (page - 1) * limit,
       take: limit,
-      include: {
+      select: {
+        id: true,
+        designation: true,
+        status: true,
+        joinedAt: true,
         user: {
           select: {
             id: true,
