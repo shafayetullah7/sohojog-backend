@@ -10,7 +10,6 @@ import { TeamWalletTransactionModule } from './team-wallet-transaction/team-wall
 import { ProjectParticipationModule } from './project-participation/project-participation.module';
 import { ManagerTaskModule } from './manager-task/manager-task.module';
 import { ProjectPropertiesModule } from './project-properties/project-properties.module';
-import { ProjectPropertiesModule } from './project-properties/project-properties.module';
 
 @Module({
   imports: [
