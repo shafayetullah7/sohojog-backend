@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 
 @Injectable()
 export class ProjectPropertiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly response: ResponseBuilder<any>,
+  ) {}
 
   async getSingleProjectTeam(
     userId: string,
@@ -50,9 +54,14 @@ export class ProjectPropertiesService {
     });
 
     if (!team) {
-      throw new Error('Team not found or you do not have access to this team.');
+      throw new NotFoundException(
+        'Team not found.',
+      );
     }
 
-    return team;
+    return this.response
+      .setSuccess(true)
+      .setMessage('Team retrieved.')
+      .setData(team);
   }
 }
