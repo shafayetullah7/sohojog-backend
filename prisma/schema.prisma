@@ -62,6 +62,7 @@ enum TeamStatus {
 
 enum TeamRole {
   LEADER
+  MEMBER
   // COORDINATOR
   // ADVISOR
   // REVIEWER
@@ -370,6 +371,9 @@ model TeamMembership {
   responsibilities String[]
   joinedAt         DateTime   @default(now())
   roles            TeamRole[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  
 
   // Relations
   team          Team          @relation(fields: [teamId], references: [id])

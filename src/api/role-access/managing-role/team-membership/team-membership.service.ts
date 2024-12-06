@@ -20,11 +20,8 @@ export class TeamMembershipService {
     private readonly response: ResponseBuilder<any>,
   ) {}
 
-  async createTeamMembership(
-    userId: string,
-    teamId: string,
-    payload: CreateTeamMembershipDto,
-  ) {
+  async createTeamMembership(userId: string, payload: CreateTeamMembershipDto) {
+    const { teamId } = payload;
     const managerTeam = await managerTeamHelper.getManagerTeam(
       this.prisma,
       userId,
@@ -62,17 +59,11 @@ export class TeamMembershipService {
 
     const newMembership = await this.prisma.teamMembership.create({
       data: {
-        teamId,
         ...payload,
         joinedAt: new Date(),
-      },
-      include: {
-        team: true,
-        participation: true,
-      },
+      }
     });
 
-    // return newMembership;
     return this.response
       .setSuccess(true)
       .setMessage('New membership created')

@@ -3,6 +3,7 @@ import { removeExtraSpaces } from 'src/_helpers/validation-helpers/transforms/st
 import { z } from 'zod';
 
 export const createTeamMembershipSchema = z.object({
+  teamId: z.string(),
   participationId: z.string().uuid('Invalid participation ID format'),
   purpose: z
     .string()
@@ -23,7 +24,6 @@ export const createTeamMembershipSchema = z.object({
     .default([]),
 });
 
-// Infer the DTO type from the Zod schema
 export type CreateTeamMembershipDto = z.infer<
   typeof createTeamMembershipSchema
 >;

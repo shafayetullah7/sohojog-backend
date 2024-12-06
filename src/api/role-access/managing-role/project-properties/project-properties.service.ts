@@ -9,7 +9,11 @@ export class ProjectPropertiesService {
     private readonly response: ResponseBuilder<any>,
   ) {}
 
-  async getTeamWithLeader(userId: string, projectId: string, teamId: string) {
+  async getSingleProjectTeam(
+    userId: string,
+    projectId: string,
+    teamId: string,
+  ) {
     // Query 1: Fetch the team details
     const team = await this.prisma.team.findFirst({
       where: {
@@ -67,7 +71,6 @@ export class ProjectPropertiesService {
       },
     });
 
-    // Format the team leader data
     const formattedTeamLeader = teamLeader
       ? {
           id: teamLeader.membership.participation.user.id,
@@ -81,7 +84,6 @@ export class ProjectPropertiesService {
         }
       : null;
 
-    // Format the final response
     const formattedTeam = {
       ...team,
       teamLeader: formattedTeamLeader,
@@ -90,6 +92,6 @@ export class ProjectPropertiesService {
     return this.response
       .setSuccess(true)
       .setMessage('Team and leader retrieved successfully.')
-      .setData(formattedTeam);
+      .setData({ team: formattedTeam });
   }
 }

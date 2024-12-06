@@ -27,11 +27,17 @@ export class ProjectParticipationService {
       limit = 10,
       joinedFrom,
       joinedTo,
+      excludeTeam,
       ...rest
     } = query;
 
     const whereClause: Prisma.ParticipationWhereInput = {
       ...rest,
+      teamMemberships: {
+        none: {
+          teamId: excludeTeam,
+        },
+      },
     };
 
     if (searchTerm) {

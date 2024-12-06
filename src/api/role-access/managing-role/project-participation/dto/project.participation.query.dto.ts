@@ -26,6 +26,7 @@ export const projectParticipationQuerySchema = z
       .trim()
       .max(255, 'Search term is too long')
       .optional(),
+    excludeTeam: z.string().uuid().optional(),
     page: z
       .union([
         z.string().regex(/^\d+$/, 'Page must be a number').transform(Number), // Convert strings to numbers
