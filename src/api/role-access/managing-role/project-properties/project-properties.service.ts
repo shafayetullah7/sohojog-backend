@@ -9,11 +9,8 @@ export class ProjectPropertiesService {
     private readonly response: ResponseBuilder<any>,
   ) {}
 
-  async getSingleProjectTeam(
-    userId: string,
-    projectId: string,
-    teamId: string,
-  ) {
+  async getTeamWithLeader(userId: string, projectId: string, teamId: string) {
+    // Query 1: Fetch the team details
     const team = await this.prisma.team.findFirst({
       where: {
         id: teamId,
@@ -31,21 +28,38 @@ export class ProjectPropertiesService {
           },
         },
       },
+    });
+
+    if (!team) {
+      throw new NotFoundException('Team not found.');
+    }
+
+    // Query 2: Fetch the team leader
+    const teamLeader = await this.prisma.teamLeader.findFirst({
+      where: {
+        membership: {
+          teamId,
+        },
+        active: true,
+      },
       include: {
-        memberShips: {
-          include: {
-            teamLeader: {
-              include: {
-                membership: {
-                  include: {
-                    participation: {
-                      include: {
-                        user: true, // Assuming a user relation exists in Participation
+        membership: {
+          select: {
+            participation: {
+              select: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    profilePicture: {
+                      select: {
+                        minUrl: true,
                       },
                     },
-                    team: true, // Include details of the team if needed
                   },
                 },
+                joinedAt: true,
+                createdAt: true,
               },
             },
           },
@@ -53,15 +67,29 @@ export class ProjectPropertiesService {
       },
     });
 
-    if (!team) {
-      throw new NotFoundException(
-        'Team not found.',
-      );
-    }
+    // Format the team leader data
+    const formattedTeamLeader = teamLeader
+      ? {
+          id: teamLeader.membership.participation.user.id,
+          name: teamLeader.membership.participation.user.name,
+          profilePicture:
+            teamLeader.membership.participation.user.profilePicture?.minUrl ||
+            null,
+          joinedAt: teamLeader.membership.participation.joinedAt,
+          isActive: teamLeader.active,
+          assignedAsLeaderAt: teamLeader.createdAt,
+        }
+      : null;
+
+    // Format the final response
+    const formattedTeam = {
+      ...team,
+      teamLeader: formattedTeamLeader,
+    };
 
     return this.response
       .setSuccess(true)
-      .setMessage('Team retrieved.')
-      .setData(team);
+      .setMessage('Team and leader retrieved successfully.')
+      .setData(formattedTeam);
   }
 }

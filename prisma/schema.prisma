@@ -384,6 +384,9 @@ model TeamLeader {
   id           String  @id @default(uuid())
   membershipId String  @unique
   active       Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
 
   // Relations
   membership      TeamMembership    @relation(fields: [membershipId], references: [id])
