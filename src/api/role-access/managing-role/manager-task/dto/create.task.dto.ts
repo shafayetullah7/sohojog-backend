@@ -5,7 +5,7 @@ export const createTaskSchema = z.object({
   description: z.string().max(1300, 'Description is too long.').optional(),
   status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional().default('TODO'),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional().default('MEDIUM'),
-  dueDate: z.string().date().optional(),
+  dueDate: z.string().datetime().optional(),
   inableBudget: z.preprocess(
     (val) => val === 'true',
     z.boolean().optional().default(false),

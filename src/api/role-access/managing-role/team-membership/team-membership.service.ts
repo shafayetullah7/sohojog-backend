@@ -61,7 +61,7 @@ export class TeamMembershipService {
       data: {
         ...payload,
         joinedAt: new Date(),
-      }
+      },
     });
 
     return this.response
@@ -73,46 +73,80 @@ export class TeamMembershipService {
   async addTeamLeader(userId: string, payload: AddRoleToMemberDto) {}
 
   async getMemberships(userId: string, query: TeamMembershipQueryDto) {
-    const whereClause: Prisma.TeamMembershipWhereInput = {};
+    const {
+      teamId,
+      participationId,
+      projectId,
+      role,
+      active,
+      joinedFrom,
+      joinedTo,
+      searchTerm,
+      page,
+      limit,
+    } = query;
 
-    if (query.teamId) {
-      whereClause.teamId = query.teamId;
-    }
+    const whereClause: Prisma.TeamMembershipWhereInput = {
+      ...(teamId && { teamId }),
+      ...(participationId && { participationId }),
+      ...(projectId && { participation: { projectId } }),
+      ...(role && { roles: { has: role } }),
+      ...(active !== undefined && { active }),
+      ...(joinedFrom || joinedTo
+        ? {
+            joinedAt: {
+              gte: joinedFrom ? dayjs(joinedFrom).toDate() : undefined,
+              lte: joinedTo ? dayjs(query.joinedTo).toDate() : undefined,
+            },
+          }
+        : {}),
+      ...(searchTerm
+        ? {
+            OR: [
+              {
+                participation: {
+                  user: { name: { contains: searchTerm, mode: 'insensitive' } },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
 
-    if (query.participationId) {
-      whereClause.participationId = query.participationId;
-    }
+    // Fetch total count of memberships for pagination
+    const totalItems = await this.prisma.teamMembership.count({
+      where: whereClause,
+    });
+    const totalPages = Math.ceil(totalItems / query.limit);
 
-    if (query.projectId) {
-      whereClause.participation = { projectId: query.projectId };
-    }
-
-    if (query.role) {
-      whereClause.roles = { has: query.role };
-    }
-
-    if (query.joinedFrom || query.joinedTo) {
-      whereClause.joinedAt = {};
-      if (query.joinedFrom) {
-        whereClause.joinedAt.gte = dayjs(query.joinedFrom).toDate();
-        if (query.joinedTo) {
-          whereClause.joinedAt.lte = dayjs(query.joinedTo).toDate();
-        }
-      }
-
-      return {
-        where: whereClause,
-      };
-    }
+    // Fetch paginated memberships
     const memberships = await this.prisma.teamMembership.findMany({
-      where: {
-        ...whereClause,
+      where: whereClause,
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        joinedAt: true,
+        teamId: true,
         team: {
-          project: {
-            participations: {
-              some: {
-                userId,
-                adminRole: { some: { active: true } },
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        participation: {
+          select: {
+            user: {
+              select: {
+                name: true,
+                id: true,
+                profilePicture: {
+                  select: {
+                    minUrl: true,
+                  },
+                },
               },
             },
           },
@@ -122,7 +156,15 @@ export class TeamMembershipService {
 
     return this.response
       .setSuccess(true)
-      .setMessage('Memberships retrieved')
-      .setData(memberships);
+      .setMessage('Memberships retrieved.')
+      .setData({
+        memberships,
+        pagination: {
+          currentPage: page,
+          totalItems,
+          totalPages,
+          pageSize: limit,
+        },
+      });
   }
 }

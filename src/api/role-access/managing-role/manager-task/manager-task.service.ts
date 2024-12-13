@@ -83,7 +83,7 @@ export class ManagerTaskService {
           data: {
             ...taksData,
             createdBy: userId,
-            managerTasks: { create: { adminId: userId } },
+            managerTasks: { create: { adminId: adminRole.id } },
             taskAssignment: {
               createMany: {
                 data: participationIds.map((id) => ({
@@ -124,8 +124,17 @@ export class ManagerTaskService {
           }
         }
 
-        return task;
+        const createdTask = await prismaTransaction.task.findUnique({
+          where: { id: task.id },
+          include: {
+            taskAttachments: true,
+            managerTasks: true,
+          },
+        });
+
+        return createdTask;
       } catch (error) {
+        throw error;
         throw new InternalServerErrorException(
           'Failed to create task and handle file upload',
           error.message,

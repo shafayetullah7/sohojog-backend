@@ -540,7 +540,6 @@ model Task {
   teamTaskAssignment TeamTaskAssignment[]
   taskAttachments    TaskAttachments[]
 
-  @@unique([projectId, title])
   @@map("tasks")
 }
 

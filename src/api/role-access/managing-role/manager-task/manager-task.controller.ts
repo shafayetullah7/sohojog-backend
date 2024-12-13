@@ -53,14 +53,20 @@ export class ManagerTaskController {
     @User() user: JwtUser,
   ) {
     let uploadedFiles: UploadApiResponse[] = [];
+    console.log({ files });
 
     try {
-      uploadedFiles = await this.cloudinaryService.uploadMultipleFiles(files);
+      // console.log('***********', files);
+      uploadedFiles = await this.cloudinaryService.uploadMultipleFiles(
+        files || [],
+      );
+
+      // console.log('.........')
 
       const result = await this.managerTaskService.createTask(
         user.userId,
         body,
-        uploadedFiles,
+        uploadedFiles || [],
       );
 
       return result;
