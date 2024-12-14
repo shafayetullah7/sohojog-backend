@@ -20,54 +20,137 @@ export class TeamMembershipService {
     private readonly response: ResponseBuilder<any>,
   ) {}
 
+  // async createTeamMembership(userId: string, payload: CreateTeamMembershipDto) {
+  //   const { teamId } = payload;
+  //   const managerTeam = await managerTeamHelper.getManagerTeam(
+  //     this.prisma,
+  //     userId,
+  //     teamId,
+  //   );
+
+  //   if (!managerTeam) {
+  //     throw new NotFoundException('Team not found.');
+  //   }
+
+  //   const participation = await this.prisma.participation.findUnique({
+  //     where: {
+  //       id: payload.participationId,
+  //       project: { id: managerTeam.project.id },
+  //     },
+  //   });
+
+  //   if (!participation) {
+  //     throw new NotFoundException('Participant not found.');
+  //   }
+  //   const existingMembership = await this.prisma.teamMembership.findUnique({
+  //     where: {
+  //       participationId_teamId: {
+  //         participationId: payload.participationId,
+  //         teamId: teamId,
+  //       },
+  //     },
+  //   });
+
+  //   if (existingMembership) {
+  //     throw new BadRequestException(
+  //       'Participator is already a member of this team.',
+  //     );
+  //   }
+
+  //   const newMembership = await this.prisma.teamMembership.create({
+  //     data: {
+  //       ...payload,
+  //       joinedAt: new Date(),
+  //     },
+  //   });
+
+  //   // const teamGroup = await
+
+  //   return this.response
+  //     .setSuccess(true)
+  //     .setMessage('New membership created')
+  //     .setData({ membership: newMembership });
+  // }
+
   async createTeamMembership(userId: string, payload: CreateTeamMembershipDto) {
     const { teamId } = payload;
-    const managerTeam = await managerTeamHelper.getManagerTeam(
-      this.prisma,
-      userId,
-      teamId,
-    );
 
-    if (!managerTeam) {
-      throw new NotFoundException('Team not found.');
-    }
-
-    const participation = await this.prisma.participation.findUnique({
-      where: {
-        id: payload.participationId,
-        project: { id: managerTeam.project.id },
-      },
-    });
-
-    if (!participation) {
-      throw new NotFoundException('Participant not found.');
-    }
-    const existingMembership = await this.prisma.teamMembership.findUnique({
-      where: {
-        participationId_teamId: {
-          participationId: payload.participationId,
-          teamId: teamId,
-        },
-      },
-    });
-
-    if (existingMembership) {
-      throw new BadRequestException(
-        'Participator is already a member of this team.',
+    // Wrap the entire function within a transaction
+    const result = await this.prisma.$transaction(async (prisma) => {
+      // Step 1: Validate if the user has access to the team
+      const managerTeam = await managerTeamHelper.getManagerTeam(
+        prisma,
+        userId,
+        teamId,
       );
-    }
 
-    const newMembership = await this.prisma.teamMembership.create({
-      data: {
-        ...payload,
-        joinedAt: new Date(),
-      },
+      if (!managerTeam) {
+        throw new NotFoundException('Team not found.');
+      }
+
+      // Step 2: Check if the participation exists and belongs to the correct project
+      const participation = await prisma.participation.findUnique({
+        where: {
+          id: payload.participationId,
+          project: { id: managerTeam.project.id },
+        },
+      });
+
+      if (!participation) {
+        throw new NotFoundException('Participant not found.');
+      }
+
+      // Step 3: Check if the user is already a member of the team
+      const existingMembership = await prisma.teamMembership.findUnique({
+        where: {
+          participationId_teamId: {
+            participationId: payload.participationId,
+            teamId: teamId,
+          },
+        },
+      });
+
+      if (existingMembership) {
+        throw new BadRequestException(
+          'Participator is already a member of this team.',
+        );
+      }
+
+      // Step 4: Create the new team membership
+      const newMembership = await prisma.teamMembership.create({
+        data: {
+          ...payload,
+          joinedAt: new Date(),
+        },
+      });
+
+      const group = await prisma.group.findFirst({
+        where: {
+          TeamGroup: {
+            some: {
+              teamId: payload.teamId,
+            },
+          },
+        },
+      });
+
+      if (group) {
+        const newGroupMember = await prisma.groupMember.create({
+          data: {
+            groupId: group.id,
+            userId: participation.userId,
+          },
+        });
+      }
+
+      return newMembership;
     });
 
+    // Return success response
     return this.response
       .setSuccess(true)
       .setMessage('New membership created')
-      .setData({ membership: newMembership });
+      .setData({ membership: result });
   }
 
   async addTeamLeader(userId: string, payload: AddRoleToMemberDto) {}

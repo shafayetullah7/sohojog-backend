@@ -22,51 +22,122 @@ export class TeamService {
     private readonly response: ResponseBuilder<any>,
   ) {}
 
+  // async createTeam(userId: string, payload: CreateTeamBodyDto) {
+  //   const { projectId, ...teamData } = payload;
+
+  //   const managerProject = await managerProjectHelper.getManagerProject(
+  //     this.prisma,
+  //     userId,
+  //     projectId,
+  //   );
+
+  //   if (!managerProject) {
+  //     throw new NotFoundException('Project not found.');
+  //   }
+
+  //   const { project } = managerProject;
+
+  //   if (!project) {
+  //     throw new NotFoundException('Project not found');
+  //   }
+
+  //   const existingTeam = await this.prisma.team.findUnique({
+  //     where: {
+  //       projectId_name: {
+  //         projectId,
+  //         name: payload.name,
+  //       },
+  //     },
+  //   });
+
+  //   if (existingTeam) {
+  //     throw new ConflictException(
+  //       `'${payload.name}' team already exists within the project.`,
+  //     );
+  //   }
+
+  //   const newTeam = await this.prisma.team.create({
+  //     data: {
+  //       ...teamData,
+  //       projectId: projectId,
+  //     },
+  //   });
+
+  //   // const group = await
+
+  //   return this.response
+  //     .setSuccess(true)
+  //     .setMessage('New team created.')
+  //     .setData({ newTeam });
+  // }
+
   async createTeam(userId: string, payload: CreateTeamBodyDto) {
     const { projectId, ...teamData } = payload;
 
-    const managerProject = await managerProjectHelper.getManagerProject(
-      this.prisma,
-      userId,
-      projectId,
-    );
-
-    if (!managerProject) {
-      throw new NotFoundException('Project not found.');
-    }
-
-    const { project } = managerProject;
-
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-
-    const existingTeam = await this.prisma.team.findUnique({
-      where: {
-        projectId_name: {
-          projectId,
-          name: payload.name,
-        },
-      },
-    });
-
-    if (existingTeam) {
-      throw new ConflictException(
-        `'${payload.name}' team already exists within the project.`,
+    // Start transaction block
+    const result = await this.prisma.$transaction(async (prisma) => {
+      // Step 1: Validate that the user is associated with the project
+      const managerProject = await managerProjectHelper.getManagerProject(
+        prisma,
+        userId,
+        projectId,
       );
-    }
 
-    const newTeam = await this.prisma.team.create({
-      data: {
-        ...teamData,
-        projectId: projectId,
-      },
+      if (!managerProject) {
+        throw new NotFoundException('Project not found.');
+      }
+
+      const { project } = managerProject;
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      // Step 2: Check if the team already exists in the project
+      const existingTeam = await prisma.team.findUnique({
+        where: {
+          projectId_name: {
+            projectId,
+            name: payload.name,
+          },
+        },
+      });
+
+      if (existingTeam) {
+        throw new ConflictException(
+          `'${payload.name}' team already exists within the project.`,
+        );
+      }
+
+      // Step 3: Create the new team
+      const newTeam = await prisma.team.create({
+        data: {
+          ...teamData,
+          projectId: projectId,
+        },
+      });
+
+      const group = await prisma.group.create({
+        data: {
+          name: newTeam.name,
+          createdBy: userId,
+          TeamGroup: {
+            create: {
+              teamId: newTeam.id,
+            },
+          },
+        },
+      });
+
+      // Returning the created team (or any other related data if needed)
+      return newTeam;
     });
 
+    // Return success response with the result
     return this.response
       .setSuccess(true)
       .setMessage('New team created.')
-      .setData({ newTeam });
+      .setData({ newTeam: result });
   }
 
   // async getTeamsByManager(userId: string, query: GetMyProjectTeamsQueryDto) {

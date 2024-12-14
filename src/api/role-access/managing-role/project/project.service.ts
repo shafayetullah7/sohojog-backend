@@ -56,6 +56,18 @@ export class ProjectService {
         },
       });
 
+      const newGroup = await tx.group.create({
+        data: {
+          name: payload.title,
+          createdBy: userId,
+          ProjectGroup: {
+            create: {
+              projectId: newProject.id,
+            },
+          },
+        },
+      });
+
       // Add the creator as a participant in the project
       // const participant = await tx.participation.create({
       //   data: {
@@ -231,7 +243,7 @@ export class ProjectService {
           select: {
             currency: true,
             estimatedBudget: true,
-            balance:true,
+            balance: true,
             _count: {
               select: {
                 transactions: true,
@@ -591,7 +603,4 @@ export class ProjectService {
       .setMessage('Tasks grouped by status with stats retrieved.')
       .setData(groupedTasks);
   }
-
-  
-
 }

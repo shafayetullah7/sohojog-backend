@@ -228,13 +228,34 @@ export class InvitationService {
         data: payload,
       });
 
-      const participation = await tx.participation.create({
-        data: {
-          projectId: invitation.projectId,
-          userId,
-          invitationId: invitation.id,
-        },
-      });
+      if (payload.status === 'ACCEPTED') {
+        const participation = await tx.participation.create({
+          data: {
+            projectId: invitation.projectId,
+            userId,
+            invitationId: invitation.id,
+          },
+        });
+
+        const group = await tx.group.findFirst({
+          where: {
+            ProjectGroup: {
+              some: {
+                projectId: participation.projectId,
+              },
+            },
+          },
+        });
+
+        if (group) {
+          const groupMember = await tx.groupMember.create({
+            data: {
+              groupId: group.id,
+              userId: participation.userId,
+            },
+          });
+        }
+      }
       return null;
     });
     return this.response
@@ -263,14 +284,14 @@ export class InvitationService {
       throw new NotFoundException('Invitation not found.');
     }
 
-    if(payload.seen){
+    if (payload.seen) {
       if (!invitation.seen) {
         const updatedInvitation = await this.prisma.invitation.update({
           where: { id: invitationId },
           data: { seen, seenAt: seen ? new Date() : null },
         });
       }
-    }else{
+    } else {
       if (invitation.seen) {
         const updatedInvitation = await this.prisma.invitation.update({
           where: { id: invitationId },
