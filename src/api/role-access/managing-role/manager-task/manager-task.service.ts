@@ -248,6 +248,7 @@ export class ManagerTaskService {
         page,
         limit,
         total: totalRecords,
+        totalPages: Math.ceil(totalRecords / limit),
         currentPage: page,
       },
     };

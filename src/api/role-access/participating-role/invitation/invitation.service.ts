@@ -239,7 +239,7 @@ export class InvitationService {
 
         const group = await tx.group.findFirst({
           where: {
-            ProjectGroup: {
+            projectGroup: {
               some: {
                 projectId: participation.projectId,
               },

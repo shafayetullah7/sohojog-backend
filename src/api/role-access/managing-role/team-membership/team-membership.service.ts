@@ -126,7 +126,7 @@ export class TeamMembershipService {
 
       const group = await prisma.group.findFirst({
         where: {
-          TeamGroup: {
+          teamGroup: {
             some: {
               teamId: payload.teamId,
             },

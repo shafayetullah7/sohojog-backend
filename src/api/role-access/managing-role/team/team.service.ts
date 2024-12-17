@@ -121,7 +121,7 @@ export class TeamService {
         data: {
           name: newTeam.name,
           createdBy: userId,
-          TeamGroup: {
+          teamGroup: {
             create: {
               teamId: newTeam.id,
             },

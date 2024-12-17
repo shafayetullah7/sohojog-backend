@@ -23,6 +23,12 @@ import { LeadingRoleModule } from './api/role-access/leading-role/leading-role.m
 import { ManagingRoleModule } from './api/role-access/managing-role/managing-role.module';
 import { ParticipatingRoleModule } from './api/role-access/participating-role/participating-role.module';
 import { FileModule } from './shared/shared-modules/file/file.module';
+import { MessagingGateway } from './messaging/messaging.gateway';
+import { ChatModule } from './chat/chat.module';
+import { WebsocketModule } from './websocket/websocket.module';
+import { ConfigModule } from './config/config.module';
+import { WsAuthModule } from './ws-auth/ws-auth.module';
+import { MessageModule } from './api/message/message.module';
 
 @Module({
   imports: [
@@ -45,6 +51,11 @@ import { FileModule } from './shared/shared-modules/file/file.module';
     ManagingRoleModule,
     ParticipatingRoleModule,
     FileModule,
+    ChatModule,
+    WebsocketModule,
+    ConfigModule,
+    WsAuthModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [
@@ -73,6 +84,7 @@ import { FileModule } from './shared/shared-modules/file/file.module';
       useClass: PrismaExceptionFilter, // Register the Prisma filter
     },
     AppService,
+    MessagingGateway,
   ],
 })
 export class AppModule implements NestModule {

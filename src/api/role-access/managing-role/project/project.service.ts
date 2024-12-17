@@ -60,7 +60,7 @@ export class ProjectService {
         data: {
           name: payload.title,
           createdBy: userId,
-          ProjectGroup: {
+          projectGroup: {
             create: {
               projectId: newProject.id,
             },

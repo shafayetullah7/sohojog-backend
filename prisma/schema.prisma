@@ -266,9 +266,10 @@ model Project {
   creator        User                 @relation(name: "project_creator", fields: [creatorId], references: [id])
   tasks          Task[]
 
+  projectGroup ProjectGroup? @relation(name: "ProjectToProjectGroup")
+
   @@unique([creatorId, title])
   @@map("projects")
-  ProjectGroup ProjectGroup[]
 }
 
 model ProjectAdmin {
@@ -364,10 +365,10 @@ model Team {
   memberShips         TeamMembership[]
   teamWallet          TeamWallet?
   teamTaskAssignments TeamTaskAssignment[]
+  teamGroups          TeamGroup[]
 
   @@unique([projectId, name])
   @@map("teams")
-  TeamGroup TeamGroup[]
 }
 
 model TeamMembership {
@@ -814,13 +815,13 @@ model Group {
   updatedAt   DateTime @updatedAt // Last update timestamp
 
   // Relations
-  creator  User           @relation("CreatedGroups", fields: [createdBy], references: [id], onDelete: Cascade)
-  members  GroupMember[] // List of members in the group
-  messages GroupMessage[] // Messages sent in the group
+  creator      User           @relation("CreatedGroups", fields: [createdBy], references: [id], onDelete: Cascade)
+  members      GroupMember[] // List of members in the group
+  messages     GroupMessage[] // Messages sent in the group
+  projectGroup ProjectGroup[]
+  teamGroup    TeamGroup[]
 
   @@map("groups")
-  ProjectGroup ProjectGroup[]
-  TeamGroup TeamGroup[]
 }
 
 model GroupMember {
@@ -839,10 +840,12 @@ model GroupMember {
 }
 
 model GroupMessage {
-  id        String @id @default(uuid()) // Unique identifier for the group message
+  id        String   @id @default(uuid()) // Unique identifier for the group message
   senderId  String // ID of the sender
   groupId   String // ID of the group
   messageId String // ID of the message (relation to Message)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   sender  User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -855,21 +858,19 @@ model GroupMessage {
   @@map("group_messages")
 }
 
-
 model ProjectGroup {
   id        String   @id @default(uuid())
   projectId String   @unique // Enforce one-to-one relationship with Project
-  groupId   String   @unique // Enforce one-to-one relationship with Group
+  groupId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relation
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Relations
+  project Project @relation(name: "ProjectToProjectGroup", fields: [projectId], references: [id], onDelete: Cascade)
   group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@map("project_groups")
 }
-
 
 model TeamGroup {
   id        String   @id @default(uuid())
