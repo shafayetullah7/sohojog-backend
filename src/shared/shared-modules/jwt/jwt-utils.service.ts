@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtPayload } from '../../../constants/interfaces/jwt.payload';
 import { JwtService } from '@nestjs/jwt';
 import { EnvConfigService } from 'src/env-config/env.config.service';
+import { JwtUser } from 'src/constants/interfaces/req-user/jwt.user';
 
 @Injectable()
 export class JwtUtilsService {
@@ -13,7 +14,7 @@ export class JwtUtilsService {
     return this.jwtService.sign(payload);
   }
 
-  async validateAccessToken(token: string): Promise<any> {
+  async validateAccessToken(token: string): Promise<JwtUser> {
     return await this.jwtService.verify(token, {
       secret: this.envConfig.jwtSecret,
     });

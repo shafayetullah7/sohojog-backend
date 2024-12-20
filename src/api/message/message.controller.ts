@@ -27,14 +27,33 @@ import { JwtAuthGaurd } from 'src/shared/guards/jwt.auth.gaurd';
 import { Role } from 'src/constants/enums/user.roles';
 import { TokenValidationGuard } from 'src/shared/guards/token.validation.guard';
 import { RolesGuard } from 'src/shared/guards/roles.guard';
+import {
+  ProjectGroupQueryDto,
+  projectGroupQuerySchema,
+} from './dto/project.group.query.dto';
 
-@Controller('message')
+@Controller('messages')
 export class MessageController {
   constructor(
     private readonly messageService: MessageService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly fileService: FileService,
   ) {}
+
+  @Get('group-chats')
+  @Roles(Role.User)
+  @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  async getProjectChatGroups(
+    @Query(ZodValidation(projectGroupQuerySchema)) query: ProjectGroupQueryDto,
+    @User() user: JwtUser,
+  ) {
+    const result = await this.messageService.getProjectChats(
+      user.userId,
+      query,
+    );
+
+    return result;
+  }
 
   @Post()
   @Roles(Role.User)

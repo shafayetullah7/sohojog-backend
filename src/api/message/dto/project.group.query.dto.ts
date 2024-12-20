@@ -18,4 +18,4 @@ export const projectGroupQuerySchema = z.object({
   ),
 });
 
-export type ProjectGroupQuery = z.infer<typeof projectGroupQuerySchema>;
+export type ProjectGroupQueryDto = z.infer<typeof projectGroupQuerySchema>;

@@ -113,11 +113,10 @@ model User {
   hobbies          Hobby[]
   preferences      Preference[]
   skills           Skill[]
-  SentMessages     IndividualMessage[]  @relation("SentMessages")
-  ReceivedMessages IndividualMessage[]  @relation("ReceivedMessages")
-  GroupMember      GroupMember[]
-  Group            Group[]              @relation("CreatedGroups")
-  GroupMessage     GroupMessage[]
+  groupMembers     GroupMember[]
+  groups           Group[]              @relation("CreatedGroups")
+  receivedMessages MessageReceiver[]
+  sentMessages          Message[]
 
   @@unique([googleId, id])
   @@map("users")
@@ -365,7 +364,7 @@ model Team {
   memberShips         TeamMembership[]
   teamWallet          TeamWallet?
   teamTaskAssignments TeamTaskAssignment[]
-  teamGroups          TeamGroup[]
+  teamGroup           TeamGroup?           @relation(name: "TeamToTeamGroup")
 
   @@unique([projectId, name])
   @@map("teams")
@@ -759,16 +758,18 @@ enum GroupRole {
 // Models
 
 model Message {
-  id        String        @id @default(uuid()) // Unique identifier for the message
-  content   String? // Message content (large text)
-  status    MessageStatus @default(UNREAD) // Message status (e.g., READ, UNREAD)
-  createdAt DateTime      @default(now()) // Timestamp when the message was created
-  updatedAt DateTime      @updatedAt // Timestamp when the message was last updated
+  id        String        @id @default(uuid())
+  content   String?
+  status    MessageStatus @default(UNREAD)
+  senderId  String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   // Relations
-  individualMessage IndividualMessage? // Relation to individual messages
-  groupMessage      GroupMessage? // Relation to group messages
-  files             MessageFile[] // Files associated with the message
+  groupMessage     GroupMessage?
+  files            MessageFile[]
+  messageReceivers MessageReceiver[]
+  sender           User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
@@ -786,24 +787,20 @@ model MessageFile {
   @@map("message_files")
 }
 
-model IndividualMessage {
-  id         String    @id @default(uuid()) // Unique identifier for the individual message
-  senderId   String // ID of the sender
-  receiverId String // ID of the receiver
-  messageId  String // ID of the message (relation to Message)
-  seenAt     DateTime? // Timestamp when the message was seen by the receiver
-  isDeleted  Boolean   @default(false) // Whether the message has been deleted
-  deletedAt  DateTime? // Timestamp when the message was deleted
+model MessageReceiver {
+  id         String    @id @default(uuid())
+  messageId  String
+  receiverId String
+  seenAt     DateTime?
+  deletedAt  DateTime?
 
   // Relations
-  sender   User    @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver User    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
   message  Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  receiver User    @relation(fields: [receiverId], references: [id], onDelete: Cascade)
 
-  @@unique([messageId])
-  @@index([senderId])
+  @@unique([messageId, receiverId]) // Ensure a unique message-receiver combination
   @@index([receiverId])
-  @@map("individual_messages")
+  @@map("message_receivers")
 }
 
 model Group {
@@ -841,19 +838,16 @@ model GroupMember {
 
 model GroupMessage {
   id        String   @id @default(uuid()) // Unique identifier for the group message
-  senderId  String // ID of the sender
   groupId   String // ID of the group
   messageId String // ID of the message (relation to Message)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  sender  User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
   group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId])
-  @@index([senderId])
   @@index([groupId])
   @@map("group_messages")
 }
@@ -875,12 +869,12 @@ model ProjectGroup {
 model TeamGroup {
   id        String   @id @default(uuid())
   teamId    String   @unique // Enforce one-to-one relationship with Team
-  groupId   String   @unique // Enforce one-to-one relationship with Group
+  groupId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relation
-  team  Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team  Team  @relation(name: "TeamToTeamGroup", fields: [teamId], references: [id], onDelete: Cascade)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@map("team_groups")

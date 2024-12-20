@@ -4,6 +4,7 @@ import { VersioningType } from '@nestjs/common';
 import { EnvConfigService } from './env-config/env.config.service';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { SocketIoAdapter } from './_adaptars/socket.adaptar';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -16,10 +17,15 @@ async function bootstrap() {
       'https://example.com', // Your production URL
       'https://another-domain.com', // Additional trusted domains
     ],
+    credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });
-  app.use(helmet());
+
+  app.useWebSocketAdapter(new SocketIoAdapter(app));
+
+  // app.use(helmet());
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   app.use(cookieParser());
 

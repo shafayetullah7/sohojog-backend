@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
-import { ProjectGroupQuery } from './dto/project.group.query.dto';
 import { SendMessageDto } from './dto/send.message.dto';
 import { UploadApiResponse } from 'cloudinary';
 import { FileService } from 'src/shared/shared-modules/file/file.service';
 import { File } from '@prisma/client';
 import { GetGroupMessageQueryDto } from './dto/get.group.messages.dto';
+import { ProjectGroupQueryDto } from './dto/project.group.query.dto';
 
 @Injectable()
 export class MessageService {
@@ -16,7 +16,7 @@ export class MessageService {
     private readonly fileService: FileService,
   ) {}
 
-  async getProjectChats(userId: string, query: ProjectGroupQuery) {
+  async getProjectChats(userId: string, query: ProjectGroupQueryDto) {
     const { page = 1, limit = 10, groupRole } = query;
 
     // Calculate skip and take for pagination
@@ -79,24 +79,25 @@ export class MessageService {
                 createdAt: true,
                 messages: {
                   select: {
-                    sender: {
-                      select: {
-                        id: true,
-                        name: true,
-                        profilePicture: {
-                          select: {
-                            minUrl: true,
-                          },
-                        },
-                      },
-                    },
                     message: {
                       select: {
                         // id: true,
                         content: true,
                         createdAt: true,
-                        individualMessage: {
+                        sender: {
                           select: {
+                            id: true,
+                            name: true,
+                            profilePicture: {
+                              select: {
+                                minUrl: true,
+                              },
+                            },
+                          },
+                        },
+                        messageReceivers: {
+                          select: {
+                            id: true,
                             seenAt: true,
                           },
                           where: {
@@ -122,6 +123,61 @@ export class MessageService {
             },
           },
         },
+        teams: {
+          select: {
+            id: true,
+            name: true,
+            createdAt: true,
+            _count: {
+              select: {
+                memberShips: true,
+              },
+            },
+            teamGroup: {
+              select: {
+                group: {
+                  select: {
+                    id: true,
+                    messages: {
+                      select: {
+                        message: {
+                          select: {
+                            content: true,
+                            createdAt: true,
+                            sender: {
+                              select: {
+                                id: true,
+                                name: true,
+                                profilePicture: {
+                                  select: {
+                                    minUrl: true,
+                                  },
+                                },
+                              },
+                            },
+                            messageReceivers: {
+                              select: {
+                                id: true,
+                                seenAt: true,
+                              },
+                              where: {
+                                receiverId: userId,
+                              },
+                            },
+                          },
+                        },
+                      },
+                      orderBy: {
+                        createdAt: 'desc',
+                      },
+                      take: 1,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -139,6 +195,11 @@ export class MessageService {
         return data;
       }
     });
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Group chats fetched')
+      .setData({ projects: modifiedChats });
   }
 
   async sendMessageToGroup(
@@ -207,11 +268,11 @@ export class MessageService {
       });
       const message = await prismaTransaction.message.create({
         data: {
-          content, // Message content
+          content,
+          senderId: userId,
           groupMessage: {
             create: {
-              groupId: group.id, // Group ID
-              senderId: userId, // Sender's User ID
+              groupId: group.id,
             },
           },
           files: {
@@ -225,9 +286,8 @@ export class MessageService {
         },
       });
 
-      await prismaTransaction.individualMessage.createMany({
+      await prismaTransaction.messageReceiver.createMany({
         data: individuals.map((individual) => ({
-          senderId: userId,
           receiverId: individual.userId,
           messageId: message.id,
         })),
@@ -274,19 +334,20 @@ export class MessageService {
         },
       },
       include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: {
+              select: {
+                minUrl: true,
+              },
+            },
+          },
+        },
         files: {
           include: {
             file: true,
-          },
-        },
-        groupMessage: {
-          include: {
-            sender: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
       },
