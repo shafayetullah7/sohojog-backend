@@ -71,10 +71,7 @@ export class MessageController {
       uploadedFiles = await this.cloudinaryService.uploadMultipleFiles(
         files || [],
       );
-
-      // console.log('.........')
-
-      const result = await this.messageService.sendMessageToGroup(
+      const result = await this.messageService.sendMessageToRoom(
         user.userId,
         body,
         uploadedFiles || [],
@@ -106,21 +103,21 @@ export class MessageController {
     }
   }
 
-  @Get(':groupId')
+  @Get(':roomId')
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
   async getGroupMessages(
     @Param(ZodValidation(getGroupMessageParamsSchema))
-    param: GetGroupMessageParamsDto, // Group ID from URL
+    param: GetGroupMessageParamsDto,
     @Query(ZodValidation(getGroupMessageQuerySchema))
-    query: GetGroupMessageQueryDto, // Query parameters validated by Zod
-    @User() user: JwtUser, // Extract the current user from the JWT
+    query: GetGroupMessageQueryDto,
+    @User() user: JwtUser,
   ) {
     const { userId } = user;
 
-    const messages = await this.messageService.getGroupMessages(
+    const messages = await this.messageService.getMessages(
       userId,
-      param.groupId,
+      param.roomId,
       query,
     );
 

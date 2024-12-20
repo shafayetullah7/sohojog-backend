@@ -7,7 +7,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTeamMembershipDto } from './dto/create.team.membership.dto';
 import { managerTeamHelper } from 'src/_helpers/access-helpers/manager-access/manager.team.helper';
 import { AddRoleToMemberDto } from './dto/add.member.role.dto';
-import { managerTeamMembershipHelpers } from 'src/_helpers/access-helpers/manager-access/manager.membership.helper';
 import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { TeamMembershipQueryDto } from './dto/get.membership.dto';
 import { Prisma } from '@prisma/client';
@@ -88,7 +87,6 @@ export class TeamMembershipService {
         throw new NotFoundException('Team not found.');
       }
 
-      // Step 2: Check if the participation exists and belongs to the correct project
       const participation = await prisma.participation.findUnique({
         where: {
           id: payload.participationId,
@@ -100,7 +98,6 @@ export class TeamMembershipService {
         throw new NotFoundException('Participant not found.');
       }
 
-      // Step 3: Check if the user is already a member of the team
       const existingMembership = await prisma.teamMembership.findUnique({
         where: {
           participationId_teamId: {
@@ -116,7 +113,6 @@ export class TeamMembershipService {
         );
       }
 
-      // Step 4: Create the new team membership
       const newMembership = await prisma.teamMembership.create({
         data: {
           ...payload,
@@ -124,20 +120,20 @@ export class TeamMembershipService {
         },
       });
 
-      const group = await prisma.group.findFirst({
+      const room = await prisma.room.findFirst({
         where: {
-          teamGroup: {
-            some: {
-              teamId: payload.teamId,
+          group: {
+            Team: {
+              id: managerTeam.team?.id,
             },
           },
         },
       });
 
-      if (group) {
-        const newGroupMember = await prisma.groupMember.create({
+      if (room) {
+        await prisma.roomParticipant.create({
           data: {
-            groupId: group.id,
+            roomId: room.id,
             userId: participation.userId,
           },
         });

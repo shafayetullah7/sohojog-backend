@@ -36,11 +36,29 @@ export class ProjectService {
         );
       }
 
-      // Create the new project with an array of tags
+      const room = await tx.room.create({
+        data: {
+          participants: {
+            create: {
+              userId,
+            },
+          },
+        },
+      });
+
+      const group = await tx.group.create({
+        data: {
+          name: payload.title,
+          createdBy: userId,
+          roomId: room.id,
+        },
+      });
+
       const newProject = await tx.project.create({
         data: {
           ...payload,
           creatorId: userId,
+          groupId: group.id,
           participations: {
             create: {
               userId,
@@ -52,42 +70,9 @@ export class ProjectService {
           },
         },
         include: {
-          participations: true, // Include participations if needed
+          participations: true,
         },
       });
-
-      const newGroup = await tx.group.create({
-        data: {
-          name: payload.title,
-          createdBy: userId,
-          projectGroup: {
-            create: {
-              projectId: newProject.id,
-            },
-          },
-        },
-      });
-
-      // Add the creator as a participant in the project
-      // const participant = await tx.participation.create({
-      //   data: {
-      //     projectId: newProject.id,
-      //     userId,
-      //   },
-      // });
-
-      // // Assign the creator as the manager of the project
-      // const manager = await tx.projectAdmin.create({
-      //   data: {
-      //     participationId: participant.id,
-      //     role: ProjectAdminRole.MANAGER,
-      //   },
-      // });
-
-      // Logging the new project for debugging
-      // console.log(newProject);
-
-      // Set the response object with success status and project data
 
       return newProject;
     });

@@ -7,6 +7,7 @@ import { FileService } from 'src/shared/shared-modules/file/file.service';
 import { File } from '@prisma/client';
 import { GetGroupMessageQueryDto } from './dto/get.group.messages.dto';
 import { ProjectGroupQueryDto } from './dto/project.group.query.dto';
+import { GetMessageRoomsQueryDto } from './dto/get.message.rooms.dto';
 
 @Injectable()
 export class MessageService {
@@ -43,7 +44,13 @@ export class MessageService {
       skip,
       take,
       orderBy: {
-        createdAt: 'desc',
+        group: {
+          room: {
+            lastMessage: {
+              createdAt: 'desc',
+            },
+          },
+        },
       },
       select: {
         id: true,
@@ -70,53 +77,34 @@ export class MessageService {
             },
           },
         },
-        projectGroup: {
+        group: {
           select: {
             id: true,
-            group: {
+            name: true,
+            room: {
               select: {
-                name: true,
-                createdAt: true,
-                messages: {
+                id: true,
+                lastMessage: {
                   select: {
-                    message: {
+                    id: true,
+                    content: true,
+                    createdAt: true,
+                    sender: {
                       select: {
-                        // id: true,
-                        content: true,
-                        createdAt: true,
-                        sender: {
+                        id: true,
+                        name: true,
+                        profilePicture: {
                           select: {
-                            id: true,
-                            name: true,
-                            profilePicture: {
-                              select: {
-                                minUrl: true,
-                              },
-                            },
-                          },
-                        },
-                        messageReceivers: {
-                          select: {
-                            id: true,
-                            seenAt: true,
-                          },
-                          where: {
-                            receiverId: userId,
+                            minUrl: true,
                           },
                         },
                       },
                     },
                   },
-                  take: 1,
-                  orderBy: {
-                    message: {
-                      createdAt: 'desc',
-                    },
-                  },
                 },
                 _count: {
                   select: {
-                    members: true,
+                    participants: true,
                   },
                 },
               },
@@ -133,44 +121,35 @@ export class MessageService {
                 memberShips: true,
               },
             },
-            teamGroup: {
+            group: {
               select: {
-                group: {
+                id: true,
+                name: true,
+                room: {
                   select: {
                     id: true,
-                    messages: {
+                    lastMessage: {
                       select: {
-                        message: {
+                        id: true,
+                        content: true,
+                        createdAt: true,
+                        sender: {
                           select: {
-                            content: true,
-                            createdAt: true,
-                            sender: {
+                            id: true,
+                            name: true,
+                            profilePicture: {
                               select: {
-                                id: true,
-                                name: true,
-                                profilePicture: {
-                                  select: {
-                                    minUrl: true,
-                                  },
-                                },
-                              },
-                            },
-                            messageReceivers: {
-                              select: {
-                                id: true,
-                                seenAt: true,
-                              },
-                              where: {
-                                receiverId: userId,
+                                minUrl: true,
                               },
                             },
                           },
                         },
                       },
-                      orderBy: {
-                        createdAt: 'desc',
+                    },
+                    _count: {
+                      select: {
+                        participants: true,
                       },
-                      take: 1,
                     },
                   },
                 },
@@ -202,18 +181,60 @@ export class MessageService {
       .setData({ projects: modifiedChats });
   }
 
-  async sendMessageToGroup(
+  // async getMessageRooms(userId: string, query: GetMessageRoomsQueryDto) {
+  //   const rooms = await this.prisma.room.findMany({
+  //     where: {
+  //       participants: {
+  //         some: {
+  //           userId,
+  //         },
+  //       },
+  //     },
+  //     select: {
+  //       id: true,
+  //       group: {
+  //         select: {
+  //           name: true,
+  //           Project: {
+  //             select: {
+  //               id: true,
+  //               title: true,
+  //               participations: {
+  //                 where: {
+  //                   userId,
+  //                 },
+  //                 select: {
+  //                   adminRole: {
+  //                     where: { active: true },
+  //                   },
+  //                 },
+  //               },
+  //             },
+  //           },
+  //           Team:{
+  //             select:{
+  //               id:true,
+  //               name:true
+  //             }
+  //           }
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
+
+  async sendMessageToRoom(
     userId: string,
     payload: SendMessageDto,
     files: UploadApiResponse[],
   ) {
-    const { groupId, content } = payload;
+    const { roomId, content } = payload;
 
     const result = await this.prisma.$transaction(async (prismaTransaction) => {
-      const group = await prismaTransaction.group.findFirst({
+      const room = await prismaTransaction.room.findFirst({
         where: {
-          id: groupId,
-          members: {
+          id: roomId,
+          participants: {
             some: {
               userId,
             },
@@ -221,21 +242,9 @@ export class MessageService {
         },
       });
 
-      if (!group) {
-        throw new NotFoundException('Group not found');
+      if (!room) {
+        throw new NotFoundException('Chat not found');
       }
-
-      //   const message = await prismaTransaction.message.create({
-      //     data: {
-      //       content,
-      //       groupMessage: {
-      //         create: {
-      //           groupId: group.id,
-      //           senderId: userId,
-      //         },
-      //       },
-      //     },
-      //   });
 
       let uploadedFiles: File[] = [];
 
@@ -245,22 +254,11 @@ export class MessageService {
           userId,
           prismaTransaction,
         );
-
-        // if (uploadedFiles.length) {
-        //   const attachmentData = uploadedFiles.map((file) => ({
-        //     messageId: message.id,
-        //     fileId: file.id,
-        //   }));
-
-        //   await prismaTransaction.messageFile.createMany({
-        //     data: attachmentData,
-        //   });
-        // }
       }
 
-      const individuals = await prismaTransaction.groupMember.findMany({
+      const individuals = await prismaTransaction.roomParticipant.findMany({
         where: {
-          groupId,
+          roomId,
           NOT: {
             userId,
           },
@@ -270,9 +268,9 @@ export class MessageService {
         data: {
           content,
           senderId: userId,
-          groupMessage: {
+          roomMessage: {
             create: {
-              groupId: group.id,
+              roomId: room.id,
             },
           },
           files: {
@@ -302,17 +300,17 @@ export class MessageService {
       .setData({ message: result });
   }
 
-  async getGroupMessages(
+  async getMessages(
     userId: string,
-    groupId: string,
+    roomId: string,
     query: GetGroupMessageQueryDto,
   ) {
     const { page, limit } = query;
 
-    const group = await this.prisma.group.findUnique({
+    const room = await this.prisma.room.findUnique({
       where: {
-        id: groupId,
-        members: {
+        id: roomId,
+        participants: {
           some: {
             userId,
           },
@@ -320,8 +318,8 @@ export class MessageService {
       },
     });
 
-    if (!group) {
-      throw new NotFoundException('Group not found');
+    if (!room) {
+      throw new NotFoundException('Chat not found');
     }
 
     const offset = (page - 1) * limit;
@@ -329,8 +327,8 @@ export class MessageService {
     // Fetch paginated messages
     const messages = await this.prisma.message.findMany({
       where: {
-        groupMessage: {
-          groupId,
+        roomMessage: {
+          roomId,
         },
       },
       include: {
@@ -360,8 +358,8 @@ export class MessageService {
 
     const totalCount = await this.prisma.message.count({
       where: {
-        groupMessage: {
-          groupId,
+        roomMessage: {
+          roomId,
         },
       },
     });

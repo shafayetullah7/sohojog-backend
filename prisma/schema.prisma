@@ -113,10 +113,10 @@ model User {
   hobbies          Hobby[]
   preferences      Preference[]
   skills           Skill[]
-  groupMembers     GroupMember[]
   groups           Group[]              @relation("CreatedGroups")
   receivedMessages MessageReceiver[]
-  sentMessages          Message[]
+  sentMessages     Message[]
+  RoomParticipant  RoomParticipant[]
 
   @@unique([googleId, id])
   @@map("users")
@@ -249,6 +249,7 @@ model Project {
   status      ProjectStatus     @default(PLANNING)
   startDate   DateTime
   endDate     DateTime?
+  groupId     String? // Optional group association
   creatorId   String
   visibility  ProjectVisibility @default(PRIVATE)
   priority    ProjectPriority   @default(MEDIUM)
@@ -264,10 +265,10 @@ model Project {
   teams          Team[]
   creator        User                 @relation(name: "project_creator", fields: [creatorId], references: [id])
   tasks          Task[]
+  group          Group?               @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
-  projectGroup ProjectGroup? @relation(name: "ProjectToProjectGroup")
-
-  @@unique([creatorId, title])
+  @@unique([creatorId, title]) // Ensures no duplicate project titles per creator
+  @@unique([groupId]) // Ensures a group can only be associated with one project
   @@map("projects")
 }
 
@@ -356,17 +357,19 @@ model Team {
   name                String               @db.VarChar(255)
   purpose             String?              @db.Text
   projectId           String
+  groupId             String? // Optional group association
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   status              TeamStatus           @default(ACTIVE)
   responsibilities    String[]
   project             Project              @relation(fields: [projectId], references: [id])
+  group               Group?               @relation(fields: [groupId], references: [id], onDelete: SetNull)
   memberShips         TeamMembership[]
   teamWallet          TeamWallet?
   teamTaskAssignments TeamTaskAssignment[]
-  teamGroup           TeamGroup?           @relation(name: "TeamToTeamGroup")
 
-  @@unique([projectId, name])
+  @@unique([projectId, name]) // Ensures no duplicate team names within a project
+  @@unique([groupId]) // Ensures a group can only be associated with one team
   @@map("teams")
 }
 
@@ -755,8 +758,6 @@ enum GroupRole {
   MEMBER
 }
 
-// Models
-
 model Message {
   id        String        @id @default(uuid())
   content   String?
@@ -765,25 +766,24 @@ model Message {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  // Relations
-  groupMessage     GroupMessage?
   files            MessageFile[]
   messageReceivers MessageReceiver[]
   sender           User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  roomMessage      RoomMessage?
+  room             Room[]
 
   @@map("messages")
 }
 
 model MessageFile {
-  id        String @id @default(uuid()) // Unique identifier for the MessageFile
-  fileId    String // ID of the file
-  messageId String // ID of the message
+  id        String @id @default(uuid())
+  fileId    String
+  messageId String
 
-  // Relations
   file    File    @relation(fields: [fileId], references: [id], onDelete: Cascade)
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
-  @@unique([fileId, messageId]) // Prevent duplicate file-message associations
+  @@unique([fileId, messageId])
   @@map("message_files")
 }
 
@@ -794,88 +794,71 @@ model MessageReceiver {
   seenAt     DateTime?
   deletedAt  DateTime?
 
-  // Relations
   message  Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   receiver User    @relation(fields: [receiverId], references: [id], onDelete: Cascade)
 
-  @@unique([messageId, receiverId]) // Ensure a unique message-receiver combination
+  @@unique([messageId, receiverId])
   @@index([receiverId])
   @@map("message_receivers")
 }
 
 model Group {
-  id          String   @id @default(uuid()) // Unique identifier for the group
-  name        String // Group name
-  description String? // Optional group description
-  createdBy   String // User who created the group
-  createdAt   DateTime @default(now()) // Group creation timestamp
-  updatedAt   DateTime @updatedAt // Last update timestamp
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  roomId      String
 
-  // Relations
-  creator      User           @relation("CreatedGroups", fields: [createdBy], references: [id], onDelete: Cascade)
-  members      GroupMember[] // List of members in the group
-  messages     GroupMessage[] // Messages sent in the group
-  projectGroup ProjectGroup[]
-  teamGroup    TeamGroup[]
+  creator User          @relation("CreatedGroups", fields: [createdBy], references: [id], onDelete: Cascade)
+  Project Project?
+  Team    Team?
+  room    Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
+  @@unique([roomId])
   @@map("groups")
 }
 
-model GroupMember {
-  id       String    @id @default(uuid()) // Unique identifier for the group membership
-  userId   String // ID of the user
-  groupId  String // ID of the group
-  role     GroupRole @default(MEMBER) // Role of the user in the group (e.g., admin, member)
-  joinedAt DateTime  @default(now()) // Timestamp when the user joined the group
 
-  // Relations
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, groupId]) // Ensure a user can join a group only once
-  @@map("group_members")
+model Room {
+  id            String   @id @default(uuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastMessageId String?
+
+  participants RoomParticipant[]
+  roomMessages RoomMessage[]
+  group        Group?
+
+  lastMessage Message? @relation(fields: [lastMessageId], references: [id]) // Relationship to Message
+
+  @@map("rooms")
 }
 
-model GroupMessage {
-  id        String   @id @default(uuid()) // Unique identifier for the group message
-  groupId   String // ID of the group
-  messageId String // ID of the message (relation to Message)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model RoomParticipant {
+  id       Int      @id @default(autoincrement())
+  roomId   String
+  userId   String
+  joinedAt DateTime @default(now())
 
-  // Relations
-  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("room_participants")
+}
+
+model RoomMessage {
+  id        String   @id @default(uuid())
+  roomId    String
+  messageId String
+  createdAt DateTime @default(now())
+
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId])
-  @@index([groupId])
-  @@map("group_messages")
-}
-
-model ProjectGroup {
-  id        String   @id @default(uuid())
-  projectId String   @unique // Enforce one-to-one relationship with Project
-  groupId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  project Project @relation(name: "ProjectToProjectGroup", fields: [projectId], references: [id], onDelete: Cascade)
-  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  @@map("project_groups")
-}
-
-model TeamGroup {
-  id        String   @id @default(uuid())
-  teamId    String   @unique // Enforce one-to-one relationship with Team
-  groupId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relation
-  team  Team  @relation(name: "TeamToTeamGroup", fields: [teamId], references: [id], onDelete: Cascade)
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  @@map("team_groups")
+  @@map("room_messages")
 }

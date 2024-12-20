@@ -109,23 +109,30 @@ export class TeamService {
         );
       }
 
-      // Step 3: Create the new team
-      const newTeam = await prisma.team.create({
+      const room = await prisma.room.create({
         data: {
-          ...teamData,
-          projectId: projectId,
+          participants: {
+            create: {
+              userId,
+            },
+          },
         },
       });
 
       const group = await prisma.group.create({
         data: {
-          name: newTeam.name,
+          name: payload.name,
           createdBy: userId,
-          teamGroup: {
-            create: {
-              teamId: newTeam.id,
-            },
-          },
+          roomId: room.id,
+        },
+      });
+
+      // Step 3: Create the new team
+      const newTeam = await prisma.team.create({
+        data: {
+          ...teamData,
+          projectId: projectId,
+          groupId: group.id,
         },
       });
 

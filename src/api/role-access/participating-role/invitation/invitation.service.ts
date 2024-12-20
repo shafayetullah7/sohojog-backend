@@ -237,20 +237,16 @@ export class InvitationService {
           },
         });
 
-        const group = await tx.group.findFirst({
+        const room = await tx.room.findFirst({
           where: {
-            projectGroup: {
-              some: {
-                projectId: participation.projectId,
-              },
-            },
+            id: invitation.projectId,
           },
         });
 
-        if (group) {
-          const groupMember = await tx.groupMember.create({
+        if (room) {
+          await tx.roomParticipant.create({
             data: {
-              groupId: group.id,
+              roomId: room.id,
               userId: participation.userId,
             },
           });
