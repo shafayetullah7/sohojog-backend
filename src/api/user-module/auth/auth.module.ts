@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { PasswordManagerModule } from 'src/shared/shared-modules/password-manager/password-manager.module';
@@ -29,7 +29,7 @@ import { FileModule } from 'src/shared/shared-modules/file/file.module';
     EmailModule,
     OtpModule,
     EmailVerificationModule,
-    FileModule
+    forwardRef(() => FileModule),
   ],
   providers: [
     LocalAuthService,

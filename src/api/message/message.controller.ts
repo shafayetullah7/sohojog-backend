@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -7,6 +8,7 @@ import {
   Query,
   UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MessageService } from './message.service';
 import { SendMessageDto, sendMessageSchema } from './dto/send.message.dto';
@@ -31,6 +33,7 @@ import {
   ProjectGroupQueryDto,
   projectGroupQuerySchema,
 } from './dto/project.group.query.dto';
+import { FileHandler } from 'src/shared/shared-modules/file/file.handler';
 
 @Controller('messages')
 export class MessageController {
@@ -58,16 +61,30 @@ export class MessageController {
   @Post()
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
+  @UseInterceptors(
+    FileHandler.generateMultipleFilesInterceptor('files', [
+      'jpg',
+      'jpeg',
+      'png',
+      'pdf',
+      'docx',
+      'pptx',
+      'csv',
+    ]),
+  )
   async sendMessageToGroup(
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Body(ZodValidation(sendMessageSchema)) body: SendMessageDto,
     @User() user: JwtUser,
   ) {
     let uploadedFiles: UploadApiResponse[] = [];
-    console.log({ files });
+    console.log({ files, body });
+
+    if (!body.content && !files?.length) {
+      throw new BadRequestException('No data provided');
+    }
 
     try {
-      // console.log('***********', files);
       uploadedFiles = await this.cloudinaryService.uploadMultipleFiles(
         files || [],
       );
@@ -79,27 +96,13 @@ export class MessageController {
 
       return result;
     } catch (error) {
-      // If an error occurs, delete uploaded files
       if (uploadedFiles.length) {
         await this.cloudinaryService.deleteMultipleFiles(
           uploadedFiles.map((file) => file.public_id),
         );
       }
 
-      // console.error('Error creating task: ', error);
-      // if (
-      //   error instanceof NotFoundException ||
-      //   error instanceof BadRequestException ||
-      //   error instanceof ConflictException
-      // ) {
-      //   throw error;
-      // } else {
-      //   throw error;
-      // }
       throw error;
-      // throw new InternalServerErrorException(
-      //   'Failed to create task. Files have been deleted.',
-      // );
     }
   }
 

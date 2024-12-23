@@ -29,6 +29,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { ConfigModule } from './config/config.module';
 import { WsAuthModule } from './ws-auth/ws-auth.module';
 import { MessageModule } from './api/message/message.module';
+import { UserFilesModule } from './api/user-files/user-files.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { MessageModule } from './api/message/message.module';
     ConfigModule,
     WsAuthModule,
     MessageModule,
+    UserFilesModule,
   ],
   controllers: [AppController],
   providers: [

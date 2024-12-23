@@ -8,6 +8,7 @@ import { File } from '@prisma/client';
 import { GetGroupMessageQueryDto } from './dto/get.group.messages.dto';
 import { ProjectGroupQueryDto } from './dto/project.group.query.dto';
 import { GetMessageRoomsQueryDto } from './dto/get.message.rooms.dto';
+import { SendCleanMessageDto } from './dto/send.clean.message.dto';
 
 @Injectable()
 export class MessageService {
@@ -291,13 +292,176 @@ export class MessageService {
         })),
       });
 
-      return message;
+      const sentMessage = await prismaTransaction.message.findUnique({
+        where: {
+          id: message.id,
+        },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          files: {
+            select: {
+              file: {
+                select: {
+                  id: true,
+                  file: true,
+                  fileType: true,
+                  fileName: true,
+                  extension: true,
+                },
+              },
+            },
+          },
+          sender: {
+            select: {
+              id: true,
+              name: true,
+              profilePicture: {
+                select: {
+                  minUrl: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // this.chatGateway.handleSendMessage()
+
+      return sentMessage;
     });
 
     return this.response
       .setSuccess(true)
       .setMessage('Message sent')
       .setData({ message: result });
+  }
+
+  async sendCleanMessageToRoom(userId: string, payload: SendCleanMessageDto) {
+    const { roomId, content, fileIds } = payload;
+
+    const result = await this.prisma.$transaction(async (prismaTransaction) => {
+      const user = await prismaTransaction.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const room = await prismaTransaction.room.findFirst({
+        where: {
+          id: roomId,
+          participants: {
+            some: {
+              userId,
+            },
+          },
+        },
+      });
+
+      if (!room) {
+        throw new NotFoundException('Chat not found');
+      }
+
+      let uploadedFiles: File[] = [];
+
+      if (fileIds?.length) {
+        uploadedFiles = await prismaTransaction.file.findMany({
+          where: {
+            id: {
+              in: fileIds,
+            },
+            uploadBy: userId,
+          },
+        });
+      }
+
+      fileIds.forEach((id) => {
+        if (!uploadedFiles.find((file) => file.id === id)) {
+          throw new NotFoundException('Certain file not found');
+        }
+      });
+
+      const individuals = await prismaTransaction.roomParticipant.findMany({
+        where: {
+          roomId,
+          NOT: {
+            userId,
+          },
+        },
+      });
+      const message = await prismaTransaction.message.create({
+        data: {
+          content,
+          senderId: userId,
+          roomMessage: {
+            create: {
+              roomId: room.id,
+            },
+          },
+          files: {
+            create: uploadedFiles.map((file) => ({
+              fileId: file.id,
+            })),
+          },
+        },
+        include: {
+          files: true,
+        },
+      });
+
+      await prismaTransaction.messageReceiver.createMany({
+        data: individuals.map((individual) => ({
+          receiverId: individual.userId,
+          messageId: message.id,
+        })),
+      });
+
+      const sentMessage = await prismaTransaction.message.findUnique({
+        where: {
+          id: message.id,
+        },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          files: {
+            select: {
+              file: {
+                select: {
+                  id: true,
+                  file: true,
+                  fileType: true,
+                  fileName: true,
+                  extension: true,
+                },
+              },
+            },
+          },
+          sender: {
+            select: {
+              id: true,
+              name: true,
+              profilePicture: {
+                select: {
+                  minUrl: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return sentMessage;
+    });
+
+    // return this.response
+    //   .setSuccess(true)
+    //   .setMessage('Message sent')
+    //   .setData({ message: result });
+    return result;
   }
 
   async getMessages(

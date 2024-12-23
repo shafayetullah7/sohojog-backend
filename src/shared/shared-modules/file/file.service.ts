@@ -9,6 +9,7 @@ import { Express } from 'express';
 import { File, FileType, Image, Prisma } from '@prisma/client';
 import { CloudinaryService } from './cloudinary.service';
 import { getFileType } from 'src/shared/utils/functions/getFileType';
+import { ResponseBuilder } from '../response-builder/response.builder';
 
 @Injectable()
 export class FileService {
@@ -60,6 +61,7 @@ export class FileService {
 
       return fileRecords;
     } catch (error) {
+      console.log('file upload error', error);
       throw new InternalServerErrorException(
         'Failed to upload multiple files and insert records into the database',
         error.message,
