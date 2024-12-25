@@ -74,6 +74,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: client.rooms.has(data.room) };
   }
 
+  @SubscribeMessage('leaveRoom')
+  handleLeaveRoom(
+    @MessageBody() data: { roomId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    // this.rooms.get(roomId)?.delete(client.id);
+    if (client.rooms?.has(data.roomId)) {
+      client.leave(data.roomId);
+    }
+    client.to(data.roomId).emit('user-left', { userId: client.data.user?.id });
+  }
+
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
     @ConnectedSocket() client: Socket,
@@ -89,7 +101,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       }
 
-      console.log({ rooms:client.rooms });
+      console.log({ rooms: client.rooms });
 
       const message = await this.messageService.sendCleanMessageToRoom(
         client.data.user?.userId,

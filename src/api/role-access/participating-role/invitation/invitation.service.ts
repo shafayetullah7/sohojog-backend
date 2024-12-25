@@ -239,7 +239,11 @@ export class InvitationService {
 
         const room = await tx.room.findFirst({
           where: {
-            id: invitation.projectId,
+            group: {
+              project: {
+                id: invitation.projectId,
+              },
+            },
           },
         });
 

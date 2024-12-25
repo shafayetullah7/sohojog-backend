@@ -123,7 +123,7 @@ export class TeamMembershipService {
       const room = await prisma.room.findFirst({
         where: {
           group: {
-            Team: {
+            team: {
               id: managerTeam.team?.id,
             },
           },

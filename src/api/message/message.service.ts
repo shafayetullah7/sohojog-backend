@@ -413,6 +413,11 @@ export class MessageService {
         },
       });
 
+      await prismaTransaction.room.update({
+        data: { lastMessageId: message.id },
+        where: { id: payload.roomId },
+      });
+
       await prismaTransaction.messageReceiver.createMany({
         data: individuals.map((individual) => ({
           receiverId: individual.userId,

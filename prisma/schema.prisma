@@ -812,8 +812,8 @@ model Group {
   roomId      String
 
   creator User          @relation("CreatedGroups", fields: [createdBy], references: [id], onDelete: Cascade)
-  Project Project?
-  Team    Team?
+  project Project?
+  team    Team?
   room    Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@unique([roomId])
