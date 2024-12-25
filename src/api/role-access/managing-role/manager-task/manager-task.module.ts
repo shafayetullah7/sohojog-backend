@@ -10,5 +10,6 @@ import { UserModule } from 'src/api/user-module/user/user.module';
   imports: [FileModule, PrismaModule, ResponseBuilderModule, UserModule],
   controllers: [ManagerTaskController],
   providers: [ManagerTaskService],
+  exports: [ManagerTaskService],
 })
 export class ManagerTaskModule {}

@@ -25,9 +25,7 @@ import { ParticipatingRoleModule } from './api/role-access/participating-role/pa
 import { FileModule } from './shared/shared-modules/file/file.module';
 import { MessagingGateway } from './messaging/messaging.gateway';
 import { ChatModule } from './chat/chat.module';
-import { WebsocketModule } from './websocket/websocket.module';
 import { ConfigModule } from './config/config.module';
-import { WsAuthModule } from './ws-auth/ws-auth.module';
 import { MessageModule } from './api/message/message.module';
 import { UserFilesModule } from './api/user-files/user-files.module';
 
@@ -53,9 +51,7 @@ import { UserFilesModule } from './api/user-files/user-files.module';
     ParticipatingRoleModule,
     FileModule,
     ChatModule,
-    WebsocketModule,
     ConfigModule,
-    WsAuthModule,
     MessageModule,
     UserFilesModule,
   ],

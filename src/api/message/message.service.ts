@@ -9,12 +9,13 @@ import { GetGroupMessageQueryDto } from './dto/get.group.messages.dto';
 import { ProjectGroupQueryDto } from './dto/project.group.query.dto';
 import { GetMessageRoomsQueryDto } from './dto/get.message.rooms.dto';
 import { SendCleanMessageDto } from './dto/send.clean.message.dto';
+import { response } from 'express';
 
 @Injectable()
 export class MessageService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly response: ResponseBuilder<unknown>,
+    // private readonly response: ResponseBuilder<unknown>,
     private readonly fileService: FileService,
   ) {}
 
@@ -176,10 +177,11 @@ export class MessageService {
       }
     });
 
-    return this.response
-      .setSuccess(true)
-      .setMessage('Group chats fetched')
-      .setData({ projects: modifiedChats });
+    // return this.response
+    //   .setSuccess(true)
+    //   .setMessage('Group chats fetched')
+    //   .setData({ projects: modifiedChats });
+    return { projects: modifiedChats };
   }
 
   // async getMessageRooms(userId: string, query: GetMessageRoomsQueryDto) {
@@ -327,15 +329,14 @@ export class MessageService {
         },
       });
 
-      // this.chatGateway.handleSendMessage()
-
       return sentMessage;
     });
 
-    return this.response
-      .setSuccess(true)
-      .setMessage('Message sent')
-      .setData({ message: result });
+    // return this.response
+    //   .setSuccess(true)
+    //   .setMessage('Message sent')
+    //   .setData({ message: result });
+    return response;
   }
 
   async sendCleanMessageToRoom(userId: string, payload: SendCleanMessageDto) {
@@ -488,14 +489,28 @@ export class MessageService {
 
     const offset = (page - 1) * limit;
 
-    // Fetch paginated messages
-    const messages = await this.prisma.message.findMany({
+    /*
+    const sentMessage = await prismaTransaction.message.findUnique({
       where: {
-        roomMessage: {
-          roomId,
-        },
+        id: message.id,
       },
-      include: {
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        files: {
+          select: {
+            file: {
+              select: {
+                id: true,
+                file: true,
+                fileType: true,
+                fileName: true,
+                extension: true,
+              },
+            },
+          },
+        },
         sender: {
           select: {
             id: true,
@@ -507,9 +522,42 @@ export class MessageService {
             },
           },
         },
+      },
+    });
+    */
+
+    const messages = await this.prisma.message.findMany({
+      where: {
+        roomMessage: {
+          roomId,
+        },
+      },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
         files: {
-          include: {
-            file: true,
+          select: {
+            file: {
+              select: {
+                id: true,
+                file: true,
+                fileType: true,
+                fileName: true,
+                extension: true,
+              },
+            },
+          },
+        },
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: {
+              select: {
+                minUrl: true,
+              },
+            },
           },
         },
       },
@@ -528,17 +576,30 @@ export class MessageService {
       },
     });
 
-    return this.response
-      .setSuccess(true)
-      .setMessage('Messages retrieved')
-      .setData({
-        data: messages,
-        meta: {
-          page,
-          limit,
-          totalPages: Math.ceil(totalCount / limit),
-          totalCount,
-        },
-      });
+    // return this.response
+    //   .setSuccess(true)
+    //   .setMessage('Messages retrieved')
+    //   .setData({
+    //     data: messages,
+    //     meta: {
+    //       page,
+    //       limit,
+    //       totalPages: Math.ceil(totalCount / limit),
+    //       totalCount,
+    //     },
+    //   });
+    const modufiedMessages = messages.map((message) => {
+      const you = message.sender?.id === userId ? true : false;
+      return { ...message, you };
+    });
+    return {
+      messages: modufiedMessages.reverse(),
+      meta: {
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount,
+      },
+    };
   }
 }
