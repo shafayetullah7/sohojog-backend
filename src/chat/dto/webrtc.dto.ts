@@ -1,11 +1,16 @@
 export interface OfferPayload {
-  targets: string[];
+  roomId: string;
   offer: RTCSessionDescriptionInit;
 }
 
+// export interface AnswerPayload {
+//   target: string;
+//   answer: RTCSessionDescriptionInit;
+// }
+
 export interface AnswerPayload {
-  target: string;
-  answer: RTCSessionDescriptionInit;
+  roomId: string;
+  answer: string;  
 }
 
 export interface IceCandidatePayload {
