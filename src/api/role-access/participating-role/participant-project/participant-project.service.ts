@@ -21,7 +21,14 @@ export class ParticipantProjectService {
           },
         },
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        createdAt: true,
+        startDate: true,
+        endDate: true,
+        status: true,
         _count: {
           select: {
             teams: true,
@@ -41,20 +48,34 @@ export class ParticipantProjectService {
           },
         },
         participations: {
-          where: {
-            userId,
-          },
           select: {
             joinedAt: true,
+            user: {
+              select: {
+                name: true,
+                profilePicture: {
+                  select: {
+                    minUrl: true,
+                  },
+                },
+              },
+            },
           },
+          take: 3,
         },
       },
+    });
+
+    const modifiedProjects = projects.map((project) => {
+      const modifiedDescription = project.description?.slice(0, 250) + '...';
+      project.description = modifiedDescription;
+      return project;
     });
 
     return this.response
       .setSuccess(true)
       .setMessage('Projects fetched')
-      .setData({ projects });
+      .setData({ projects: modifiedProjects });
   }
 
   async getSingleProject(userId: string, projectId: string) {
@@ -82,7 +103,19 @@ export class ParticipantProjectService {
             },
           },
         },
+        _count: {
+          select: {
+            participations: true,
+            tasks: true,
+            teams: true,
+          },
+        },
       },
     });
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Project retrieved')
+      .setData({ project });
   }
 }

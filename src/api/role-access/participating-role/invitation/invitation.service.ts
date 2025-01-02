@@ -234,6 +234,7 @@ export class InvitationService {
             projectId: invitation.projectId,
             userId,
             invitationId: invitation.id,
+            joinedAt: new Date(),
           },
         });
 

@@ -65,8 +65,15 @@ export class ParticipantTasksService {
             }
           : {},
       ],
-      project: {
-        creatorId: userId,
+      // project: {
+      //   creatorId: userId,
+      // },
+      taskAssignment: {
+        some: {
+          participation: {
+            userId,
+          },
+        },
       },
     };
 
@@ -180,6 +187,8 @@ export class ParticipantTasksService {
       },
     });
 
+    // const modifiedProjects = 
+
     const totalRecords = await this.prisma.task.count({ where: prismaQuery });
 
     const result = {
@@ -203,6 +212,13 @@ export class ParticipantTasksService {
     const task = await this.prisma.task.findFirst({
       where: {
         id: taskId,
+        taskAssignment: {
+          some: {
+            participation: {
+              userId,
+            },
+          },
+        },
       },
       include: {
         taskAttachments: {
@@ -319,5 +335,12 @@ export class ParticipantTasksService {
         },
       },
     });
+
+    return this.response
+      .setSuccess(true)
+      .setMessage('Single task fetched')
+      .setData({ task });
   }
+
+  // const
 }

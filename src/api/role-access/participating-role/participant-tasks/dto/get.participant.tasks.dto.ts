@@ -2,7 +2,7 @@ import { SubmissionStatus, TaskPriority, TaskStatus } from '@prisma/client';
 import { z } from 'zod';
 
 export const queryTaskSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().optional(),
   title: z.string().max(255).optional(),
   status: z.nativeEnum(TaskStatus).optional(),
   priority: z.nativeEnum(TaskPriority).optional(),
@@ -27,15 +27,28 @@ export const queryTaskSchema = z.object({
     .default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
 
-  page: z.preprocess((val) => Number(val), z.number().min(1).default(1)),
-  limit: z.preprocess(
-    (val) => Number(val),
-    z.number().min(1).max(100).default(10),
-  ),
-  assignmentLimit: z.preprocess(
-    (val) => Number(val),
-    z.number().min(0).optional().default(3),
-  ),
+  page: z
+      .string()
+      .transform((pageString) => parseInt(pageString, 10))
+      .pipe(z.number().int().positive())
+      .default('1'),
+
+    limit: z
+      .string()
+      .transform((limitString) => parseInt(limitString, 10))
+      .pipe(
+        z
+          .number()
+          .int()
+          .positive()
+          .max(100, 'Limit cannot be more than 100')
+      )
+      .default('10'),
+  assignmentLimit: z
+  .string()
+  .transform((pageString) => parseInt(pageString, 10))
+  .pipe(z.number().int().positive())
+  .default('3'),
 });
 
 export type QueryTaskDto = z.infer<typeof queryTaskSchema>;

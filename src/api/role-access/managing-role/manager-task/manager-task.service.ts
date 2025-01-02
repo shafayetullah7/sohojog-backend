@@ -135,10 +135,6 @@ export class ManagerTaskService {
         return createdTask;
       } catch (error) {
         throw error;
-        throw new InternalServerErrorException(
-          'Failed to create task and handle file upload',
-          error.message,
-        );
       }
     });
 
