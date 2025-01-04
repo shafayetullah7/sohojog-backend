@@ -13,7 +13,7 @@ import {
   getSingleProjectSchema,
 } from './dto/get.single.project.dto';
 
-@Controller('participant/projects')
+@Controller('participations')
 export class ParticipantProjectController {
   constructor(
     private readonly participantProjectService: ParticipantProjectService,
@@ -33,7 +33,7 @@ export class ParticipantProjectController {
     return result;
   }
 
-  @Get('/:projectId')
+  @Get('/:participationId')
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
   async getSingleProject(
@@ -43,7 +43,7 @@ export class ParticipantProjectController {
   ) {
     const result = await this.participantProjectService.getSingleProject(
       user.userId,
-      param.projectId,
+      param.participationId,
     );
     return result;
   }
