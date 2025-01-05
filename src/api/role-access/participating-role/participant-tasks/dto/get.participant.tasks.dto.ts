@@ -7,6 +7,7 @@ export const queryTaskSchema = z.object({
   status: z.nativeEnum(TaskStatus).optional(),
   priority: z.nativeEnum(TaskPriority).optional(),
   projectId: z.string().uuid().optional(),
+  participationId: z.string().uuid().optional(),
   taskAssignmentType: z.enum(['GROUP', 'INDIVIDUAL']).optional(),
   teamId: z.string().uuid().optional(),
   submissionStatus: z.nativeEnum(SubmissionStatus).optional(),
@@ -28,27 +29,21 @@ export const queryTaskSchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
 
   page: z
-      .string()
-      .transform((pageString) => parseInt(pageString, 10))
-      .pipe(z.number().int().positive())
-      .default('1'),
+    .string()
+    .transform((pageString) => parseInt(pageString, 10))
+    .pipe(z.number().int().positive())
+    .default('1'),
 
-    limit: z
-      .string()
-      .transform((limitString) => parseInt(limitString, 10))
-      .pipe(
-        z
-          .number()
-          .int()
-          .positive()
-          .max(100, 'Limit cannot be more than 100')
-      )
-      .default('10'),
+  limit: z
+    .string()
+    .transform((limitString) => parseInt(limitString, 10))
+    .pipe(z.number().int().positive().max(100, 'Limit cannot be more than 100'))
+    .default('10'),
   assignmentLimit: z
-  .string()
-  .transform((pageString) => parseInt(pageString, 10))
-  .pipe(z.number().int().positive())
-  .default('3'),
+    .string()
+    .transform((pageString) => parseInt(pageString, 10))
+    .pipe(z.number().int().positive())
+    .default('3'),
 });
 
 export type QueryTaskDto = z.infer<typeof queryTaskSchema>;

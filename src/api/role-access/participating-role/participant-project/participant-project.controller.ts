@@ -13,7 +13,7 @@ import {
   getSingleProjectSchema,
 } from './dto/get.single.project.dto';
 
-@Controller('participations')
+@Controller('participant/participations')
 export class ParticipantProjectController {
   constructor(
     private readonly participantProjectService: ParticipantProjectService,

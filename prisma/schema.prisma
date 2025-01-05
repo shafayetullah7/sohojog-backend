@@ -651,6 +651,9 @@ model assignmentSubmission {
   description  String           @db.Text
   status       SubmissionStatus
 
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   // relations
   participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
   submissionFile SubmissionFile[]

@@ -30,6 +30,7 @@ export class ParticipantTasksService {
       limit = 10,
       assignmentLimit,
       dueDate,
+      participationId,
     } = query;
 
     const skip = (page - 1) * limit;
@@ -43,6 +44,15 @@ export class ParticipantTasksService {
         priority ? { priority } : {},
         projectId ? { projectId } : {},
         taskAssignmentType ? { taskAssignmentType } : {},
+        participationId
+          ? {
+              project: {
+                participations: {
+                  some: { id: participationId },
+                },
+              },
+            }
+          : {},
         dueDate
           ? {
               dueDate: {
@@ -107,7 +117,7 @@ export class ParticipantTasksService {
                 name: true,
                 profilePicture: {
                   select: {
-                    midUrl: true,
+                    minUrl: true,
                   },
                 },
               },
@@ -115,7 +125,7 @@ export class ParticipantTasksService {
           },
         },
         taskAssignment: {
-          take: assignmentLimit,
+          take: 1,
           select: {
             id: true,
             participation: {
@@ -128,28 +138,22 @@ export class ParticipantTasksService {
                     name: true,
                     profilePicture: {
                       select: {
-                        id: true,
-                        midUrl: true,
+                        minUrl: true,
                       },
                     },
                   },
                 },
               },
             },
+            _count:{
+              select:{
+                assignmentSubmission:true
+              }
+            },
           },
         },
         teamTaskAssignment: {
-          where: {
-            team: {
-              memberShips: {
-                some: {
-                  participation: {
-                    userId,
-                  },
-                },
-              },
-            },
-          },
+          take:2,
           select: {
             id: true,
             team: {
@@ -187,14 +191,13 @@ export class ParticipantTasksService {
       },
     });
 
-    // const modifiedProjects = 
+    // const modifiedProjects =
 
     const totalRecords = await this.prisma.task.count({ where: prismaQuery });
 
     const result = {
       tasks,
       pagination: {
-        page,
         limit,
         total: totalRecords,
         totalPages: Math.ceil(totalRecords / limit),
