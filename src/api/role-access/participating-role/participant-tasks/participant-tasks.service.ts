@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { QueryTaskDto } from './dto/get.participant.tasks.dto';
@@ -145,15 +145,15 @@ export class ParticipantTasksService {
                 },
               },
             },
-            _count:{
-              select:{
-                assignmentSubmission:true
-              }
+            _count: {
+              select: {
+                assignmentSubmission: true,
+              },
             },
           },
         },
         teamTaskAssignment: {
-          take:2,
+          take: 2,
           select: {
             id: true,
             team: {
@@ -338,6 +338,10 @@ export class ParticipantTasksService {
         },
       },
     });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
 
     return this.response
       .setSuccess(true)

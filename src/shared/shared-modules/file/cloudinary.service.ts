@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { EnvConfigService } from 'src/env-config/env.config.service';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import * as sharp from 'sharp'; // Import sharp for image compression
@@ -13,6 +17,7 @@ export class CloudinaryService {
     });
   }
 
+  /*
   async uploadFile(
     file: Express.Multer.File,
     toWebp: boolean = false,
@@ -20,7 +25,7 @@ export class CloudinaryService {
   ): Promise<UploadApiResponse> {
     try {
       // Check if the file is an image type (jpeg, png, webp)
-      const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(
+      const isImage = ['image/jpeg','image/jpg', 'image/png', 'image/webp'].includes(
         file.mimetype,
       );
 
@@ -48,6 +53,8 @@ export class CloudinaryService {
         }
       }
 
+      
+
       return new Promise((resolve, reject) => {
         const upload = cloudinary.uploader.upload_stream(
           { resource_type: 'auto' },
@@ -55,6 +62,151 @@ export class CloudinaryService {
             if (error) return reject(error);
             if (!result) {
               throw new InternalServerErrorException('Failed to upload file.');
+            }
+            resolve(result);
+          },
+        );
+
+        // Send the processed file buffer to Cloudinary
+        upload.end(fileBuffer);
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to process file.',
+        error.message,
+      );
+    }
+  }
+  */
+
+  /*
+  async uploadFile(
+    file: Express.Multer.File,
+    toWebp: boolean = false,
+    compress: boolean = false,
+  ): Promise<UploadApiResponse> {
+    try {
+      // Check if the file is an image type (jpeg, png, webp)
+      const isImage = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+      ].includes(file.mimetype);
+
+      let fileBuffer = file.buffer;
+
+      if (isImage && compress) {
+        const sharpInstance = sharp(fileBuffer);
+
+        if (toWebp) {
+          fileBuffer = await sharpInstance.webp({ quality: 80 }).toBuffer();
+        } else {
+          const originalFormat = this.getSharpFormat(file.mimetype);
+
+          if (originalFormat) {
+            fileBuffer = await sharpInstance
+              .toFormat(originalFormat, { quality: 80 })
+              .toBuffer();
+          } else {
+            throw new InternalServerErrorException('Unsupported image format');
+          }
+        }
+      }
+
+      return new Promise((resolve, reject) => {
+        const resourceType = isImage ? 'image' : 'raw'; // Set the appropriate resource type
+
+        const upload = cloudinary.uploader.upload_stream(
+          { resource_type: resourceType },
+          (error, result) => {
+            if (error) return reject(error);
+            if (!result) {
+              throw new InternalServerErrorException('Failed to upload file.');
+            }
+            console.log({ result });
+            resolve(result);
+          },
+        );
+
+        // Send the processed file buffer to Cloudinary
+        upload.end(fileBuffer);
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to process file.',
+        error.message,
+      );
+    }
+  }
+  */
+
+  async uploadFile(
+    file: Express.Multer.File,
+    toWebp: boolean = false,
+    compress: boolean = false,
+  ): Promise<UploadApiResponse> {
+    try {
+      if (!file || !file.buffer) {
+        throw new BadRequestException('File buffer is empty or invalid.');
+      }
+
+      // Determine if the file is an image
+      const isImage = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+      ].includes(file.mimetype);
+
+      let fileBuffer = file.buffer;
+
+      // Compress and convert to WebP if applicable
+      if (compress && isImage) {
+        const sharpInstance = sharp(fileBuffer);
+
+        if (toWebp) {
+          fileBuffer = await sharpInstance.webp({ quality: 80 }).toBuffer();
+        } else {
+          const originalFormat = this.getSharpFormat(file.mimetype);
+
+          if (originalFormat) {
+            fileBuffer = await sharpInstance
+              .toFormat(originalFormat, { quality: 80 })
+              .toBuffer();
+          } else {
+            throw new InternalServerErrorException('Unsupported image format');
+          }
+        }
+      }
+
+      // Determine folder and filename
+      const folder = isImage ? 'uploads' : 'raw';
+      const resourceType = isImage ? 'image' : 'raw';
+      const fileExtension = isImage
+        ? toWebp
+          ? 'webp'
+          : file.mimetype.split('/')[1]
+        : file.originalname.split('.').pop();
+      const filename = file.originalname.replace(/\.[^/.]+$/, ''); // Remove extension from filename
+      const publicId = `${folder}/${filename}-${Date.now()}`; // Append timestamp to avoid conflicts
+
+      return new Promise((resolve, reject) => {
+        const upload = cloudinary.uploader.upload_stream(
+          {
+            resource_type: resourceType,
+            public_id: publicId,
+            use_filename: true,
+            unique_filename: false, // Ensures the filename is as provided
+          },
+          (error, result) => {
+            // console.log({ result });
+            if (error) return reject(error);
+            if (!result) {
+              throw new InternalServerErrorException('Failed to upload file.');
+            }
+            if (!result.format && fileExtension) {
+              result.format = fileExtension;
             }
             resolve(result);
           },
