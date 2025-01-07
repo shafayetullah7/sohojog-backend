@@ -56,12 +56,9 @@ export class ManagerTaskController {
     console.log({ files });
 
     try {
-      // console.log('***********', files);
       uploadedFiles = await this.cloudinaryService.uploadMultipleFiles(
         files || [],
       );
-
-      // console.log('.........')
 
       const result = await this.managerTaskService.createTask(
         user.userId,

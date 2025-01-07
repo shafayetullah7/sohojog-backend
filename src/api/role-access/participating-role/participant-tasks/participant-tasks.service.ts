@@ -1,15 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResponseBuilder } from 'src/shared/shared-modules/response-builder/response.builder';
 import { QueryTaskDto } from './dto/get.participant.tasks.dto';
 import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
+import { AssignmentSubmissionDto } from './dto/submit.task.dto';
+import { UploadApiResponse } from 'cloudinary';
+import { FileService } from 'src/shared/shared-modules/file/file.service';
 
 @Injectable()
 export class ParticipantTasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly response: ResponseBuilder<any>,
+    private readonly fileService: FileService,
   ) {}
 
   async getParticipantTasks(userId: string, query: QueryTaskDto) {
@@ -69,7 +78,7 @@ export class ParticipantTasksService {
               taskAssignment: {
                 some: {
                   participation: { userId },
-                  assignmentSubmission: { some: { status: submissionStatus } },
+                  assignmentSubmission: { status: submissionStatus },
                 },
               },
             }
@@ -143,11 +152,6 @@ export class ParticipantTasksService {
                     },
                   },
                 },
-              },
-            },
-            _count: {
-              select: {
-                assignmentSubmission: true,
               },
             },
           },
@@ -349,5 +353,131 @@ export class ParticipantTasksService {
       .setData({ task });
   }
 
-  // const
+  async submitTask(
+    userId: string,
+    payload: AssignmentSubmissionDto,
+    files: UploadApiResponse[] = [],
+  ) {
+    return this.prisma.$transaction(async (prisma) => {
+      // Fetch the task within the transaction
+      const task = await prisma.task.findFirst({
+        where: {
+          id: payload.taskId,
+          taskAssignment: {
+            some: {
+              participation: {
+                userId,
+              },
+            },
+          },
+        },
+        include: {
+          taskSubmission: true,
+          taskAssignment: {
+            where: {
+              participation: {
+                userId,
+              },
+            },
+            include: {
+              assignmentSubmission: true,
+              participation: true,
+            },
+          },
+        },
+      });
+
+      // Validation logic inside the transaction
+      if (!task) {
+        throw new NotFoundException('Task not found.');
+      }
+
+      if (task.status !== 'TODO') {
+        throw new BadRequestException(
+          'Assignment submission is not available.',
+        );
+      }
+
+      if (
+        !task.taskAssignment?.length ||
+        task.taskAssignment[0].participation?.userId !== userId
+      ) {
+        throw new NotFoundException('Task assignment not found.');
+      }
+      if (task.taskAssignmentType === 'GROUP') {
+        if (task.taskSubmission) {
+          throw new ConflictException(
+            'Task already has submission. Please remove it to submit again.',
+          );
+        }
+      } else {
+        if (task.taskAssignment?.length) {
+          const assignment = task.taskAssignment.find(
+            (assignment) => assignment.participation?.userId === userId,
+          );
+          if (!assignment) {
+            throw new NotFoundException('Task assignment not found.');
+          }
+          if (assignment.assignmentSubmission) {
+            throw new ConflictException(
+              'Already submitted. Please remove submission to submit again.',
+            );
+          }
+        }
+      }
+
+      const uploadedFiles = await this.fileService.insertMultipleFiles(
+        files,
+        userId,
+      );
+
+      if (task.taskAssignmentType === 'GROUP') {
+        const participation = task.taskAssignment[0].participation;
+        const taskSubmission = await prisma.taskSubmission.create({
+          data: {
+            description: payload.description,
+            taskId: task.id,
+            submittedBy: participation.id,
+          },
+        });
+        const submissionFiles = await prisma.submissionFile.createMany({
+          data: uploadedFiles.map((file) => ({
+            fileId: file.id,
+            submissionId: taskSubmission.id,
+          })),
+        });
+      } else {
+        if (task.taskAssignment?.length) {
+          const assignment = task.taskAssignment.find(
+            (assignment) => assignment.participation?.userId === userId,
+          );
+          if (!assignment) {
+            throw new NotFoundException('Task assignment not found.');
+          }
+          if (assignment.assignmentSubmission) {
+            throw new ConflictException(
+              'Already submitted. Please remove submission to submit again.',
+            );
+          }
+          const submission = await prisma.assignmentSubmission.create({
+            data: {
+              description: payload.description,
+              assignmentId: assignment.id,
+            },
+          });
+          const submissionFiles = await prisma.submissionFile.createMany({
+            data: uploadedFiles.map((file) => ({
+              fileId: file.id,
+              assignmentSubmissionId: submission.id,
+            })),
+          });
+        }
+      }
+
+      return this.response
+        .setSuccess(true)
+        .setMessage('Submission done')
+        .setData({ data: null }); // Return the created submission
+    });
+  }
 }

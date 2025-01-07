@@ -339,14 +339,13 @@ model Participation {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
-  invitation            Invitation?            @relation(name: "invited_participation", fields: [invitationId], references: [id])
-  project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user                  User                   @relation("participation", fields: [userId], references: [id])
-  adminRole             ProjectAdmin[]
-  teamMemberships       TeamMembership[]
-  taskAssignments       TaskAssignment[]
-  taskSubmissions       TaskSubmission[]
-  assignmentSubmissions assignmentSubmission[]
+  invitation      Invitation?      @relation(name: "invited_participation", fields: [invitationId], references: [id])
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user            User             @relation("participation", fields: [userId], references: [id])
+  adminRole       ProjectAdmin[]
+  teamMemberships TeamMembership[]
+  taskAssignments TaskAssignment[]
+  taskSubmissions TaskSubmission[]
 
   @@unique([projectId, userId])
   @@map("participations")
@@ -547,6 +546,7 @@ model Task {
   taskAssignment     TaskAssignment[]
   teamTaskAssignment TeamTaskAssignment[]
   taskAttachments    TaskAttachments[]
+  taskSubmission     TaskSubmission?
 
   @@map("tasks")
 }
@@ -606,9 +606,9 @@ model TaskAssignment {
   participationId String?
   assignedAt      DateTime? @default(now())
 
-  task                 Task                   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  participation        Participation?         @relation(fields: [participationId], references: [id], onDelete: SetNull)
-  assignmentSubmission assignmentSubmission[]
+  task                 Task                  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  participation        Participation?        @relation(fields: [participationId], references: [id], onDelete: SetNull)
+  assignmentSubmission AssignmentSubmission?
 
   @@unique([taskId, participationId])
   @@map("team_task_assignment")
@@ -644,49 +644,51 @@ enum SubmissionStatus {
   REJECTED
 }
 
-model assignmentSubmission {
+model AssignmentSubmission {
   id           String           @id @default(uuid())
   assignmentId String
-  submittedBy  String?
   description  String           @db.Text
-  status       SubmissionStatus
+  status       SubmissionStatus @default(PENDING)
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // relations
-  participation  Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  submissionFile SubmissionFile[]
-  taskAssignment TaskAssignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  submissionFile  SubmissionFile[]
+  taskAssignment  TaskAssignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  participationId String?
 
+  @@unique([assignmentId])
   @@map("task_assignment_submissions")
 }
 
 model TaskSubmission {
   id          String           @id @default(uuid())
   taskId      String
-  submittedBy String?
+  submittedBy String
   description String           @db.Text
-  status      SubmissionStatus
+  status      SubmissionStatus @default(PENDING)
 
   // relations
-  participation   Participation?   @relation(fields: [submittedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  task            Task             @relation(fields: [taskId], references: [id])
+  participation   Participation    @relation(fields: [submittedBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
   submissionFiles SubmissionFile[]
 
+  @@unique([taskId])
   @@map("task_submissions")
 }
 
 model SubmissionFile {
-  id           String   @id @default(uuid())
-  submissionId String
-  fileId       String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  taskSubmission         TaskSubmission        @relation(fields: [submissionId], references: [id])
-  file                   File                  @relation(fields: [fileId], references: [id])
-  assignmentSubmission   assignmentSubmission? @relation(fields: [assignmentSubmissionId], references: [id])
+  id                     String  @id @default(uuid())
+  submissionId           String?
   assignmentSubmissionId String?
+
+  fileId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  taskSubmission       TaskSubmission?       @relation(fields: [submissionId], references: [id])
+  file                 File                  @relation(fields: [fileId], references: [id])
+  assignmentSubmission AssignmentSubmission? @relation(fields: [assignmentSubmissionId], references: [id])
 
   @@map("submission_files")
 }
@@ -814,16 +816,14 @@ model Group {
   updatedAt   DateTime @updatedAt
   roomId      String
 
-  creator User          @relation("CreatedGroups", fields: [createdBy], references: [id], onDelete: Cascade)
+  creator User     @relation("CreatedGroups", fields: [createdBy], references: [id], onDelete: Cascade)
   project Project?
   team    Team?
-  room    Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room    Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@unique([roomId])
   @@map("groups")
 }
-
-
 
 model Room {
   id            String   @id @default(uuid())
