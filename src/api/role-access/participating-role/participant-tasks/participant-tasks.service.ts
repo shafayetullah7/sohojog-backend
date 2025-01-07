@@ -109,6 +109,9 @@ export class ParticipantTasksService {
         status: true,
         priority: true,
         dueDate: true,
+        budget: true,
+        // inableBudget: true,
+        taskAssignmentType: true,
         projectId: true,
         _count: {
           select: {

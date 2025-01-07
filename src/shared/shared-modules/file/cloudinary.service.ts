@@ -181,6 +181,7 @@ export class CloudinaryService {
       }
 
       // Determine folder and filename
+      const date = Date.now();
       const folder = isImage ? 'uploads' : 'raw';
       const resourceType = isImage ? 'image' : 'raw';
       const fileExtension = isImage
@@ -189,7 +190,7 @@ export class CloudinaryService {
           : file.mimetype.split('/')[1]
         : file.originalname.split('.').pop();
       const filename = file.originalname.replace(/\.[^/.]+$/, ''); // Remove extension from filename
-      const publicId = `${folder}/${filename}-${Date.now()}`; // Append timestamp to avoid conflicts
+      const publicId = `${folder}/${filename}-${date}`; // Append timestamp to avoid conflicts
 
       return new Promise((resolve, reject) => {
         const upload = cloudinary.uploader.upload_stream(
@@ -197,7 +198,8 @@ export class CloudinaryService {
             resource_type: resourceType,
             public_id: publicId,
             use_filename: true,
-            unique_filename: false, // Ensures the filename is as provided
+            unique_filename: true,
+            filename_override: `${filename}-${date}.${fileExtension}`,
           },
           (error, result) => {
             // console.log({ result });

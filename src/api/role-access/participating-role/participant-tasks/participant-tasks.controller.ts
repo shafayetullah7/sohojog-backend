@@ -68,7 +68,7 @@ export class ParticipantTasksController {
     return result;
   }
 
-  @Post()
+  @Post('submit')
   @Roles(Role.User)
   @UseGuards(JwtAuthGaurd, TokenValidationGuard, RolesGuard)
   @UseInterceptors(
