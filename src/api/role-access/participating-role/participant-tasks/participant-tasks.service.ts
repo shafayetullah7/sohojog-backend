@@ -343,6 +343,46 @@ export class ParticipantTasksService {
             },
           },
         },
+        taskSubmission: {
+          select: {
+            id: true,
+            description: true,
+            submittedBy: true,
+            status: true,
+            submissionFile: {
+              select: {
+                id: true,
+                file: {
+                  select: {
+                    id: true,
+                    file: true,
+                    fileName: true,
+                    fileType: true,
+                    extension: true,
+                  },
+                },
+              },
+            },
+            participation: {
+              select: {
+                id: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    profilePicture: {
+                      select: {
+                        id: true,
+                        minUrl: true,
+                        midUrl: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
